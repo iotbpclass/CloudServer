@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>自动工程实作课</title>
+<meta name="theme-color" content="#070b16">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="实作课">
+<script>try{if(localStorage.getItem('iot_theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}</script>
+<style>
+/* =================================================================
+   科技风：浅色 / 深色两套，同一套线条、网格、霓虹青
+   ================================================================= */
+:root{
+  --bg:#e9f0fa; --grid:rgba(14,116,144,.07); --panel:#ffffff; --panel2:#f3f7fd; --line:#c9d6ea; --line2:#dfe7f3;
+  --ink:#0a1324; --ink2:#2f405c; --ink3:#51627e;
+  --accent:#0e7490; --accent-ink:#ffffff; --accent-soft:rgba(8,145,178,.12); --glow:rgba(8,145,178,.25);
+  --blue:#1d4ed8; --ok:#047857; --ok-soft:#d1fae5; --warn:#92400e; --warn-soft:#fef3c7; --bad:#b91c1c; --bad-soft:#fee2e2;
+  --input:#ffffff; --shadow:0 6px 24px rgba(15,35,70,.08);
+  --mono:ui-monospace,"Cascadia Mono","Consolas","SFMono-Regular",monospace;
+}
+html.dark{
+  --bg:#060a14; --grid:rgba(34,211,238,.06); --panel:#0d1527; --panel2:#111c33; --line:#21324f; --line2:#1a2842;
+  --ink:#e8f2ff; --ink2:#b4c6e0; --ink3:#8ea3c2;
+  --accent:#22d3ee; --accent-ink:#04121c; --accent-soft:rgba(34,211,238,.12); --glow:rgba(34,211,238,.35);
+  --blue:#60a5fa; --ok:#34d399; --ok-soft:rgba(52,211,153,.14); --warn:#fbbf24; --warn-soft:rgba(251,191,36,.14); --bad:#f87171; --bad-soft:rgba(248,113,113,.14);
+  --input:#0a1222; --shadow:0 8px 30px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px;
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+a{color:var(--accent)}
+button{font-family:inherit}
+.mono{font-family:var(--mono)}
+.wrap{max-width:1080px;margin:0 auto;padding:12px 14px 24px}
+
+/* ---------- 顶栏 ---------- */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line2)}
+.top-in{max-width:1080px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden}
+.top-in::after{content:"";position:absolute;left:-30%;bottom:0;height:1px;width:30%;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scan 4.5s linear infinite}
+@keyframes scan{to{left:100%}}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:.5px}
+.brand svg{width:30px;height:30px}
+.brand small{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:0 5px;letter-spacing:1px}
+.top .sp{flex:1}
+.ibtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;height:36px;min-width:36px;padding:0 10px;cursor:pointer;font-size:14px;font-weight:700}
+.ibtn:hover{border-color:var(--accent)}
+.save{font-family:var(--mono);font-size:12px;color:var(--ink3)}
+
+/* ---------- 底部导航 ---------- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:color-mix(in srgb,var(--panel) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav-in{max-width:640px;margin:0 auto;display:flex}
+.nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 10px;text-decoration:none;color:var(--ink3);font-size:12px;font-weight:700;position:relative}
+.nav a i{font-style:normal;font-size:21px;line-height:1.1;filter:grayscale(.35)}
+.nav a.on{color:var(--accent)}
+.nav a.on i{filter:none}
+.nav a.on::before{content:"";position:absolute;top:0;left:25%;right:25%;height:3px;border-radius:0 0 4px 4px;background:var(--accent);box-shadow:0 0 12px var(--glow)}
+.nav .dot{position:absolute;top:7px;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px var(--panel)}
+
+/* ---------- 卡片 ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:16px;margin:12px 0;box-shadow:var(--shadow);animation:pop .32s cubic-bezier(.2,.9,.3,1.2) both}
+.card.flat{box-shadow:none}
+.card.glow{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft),0 0 28px var(--glow)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+h1{font-size:22px;margin:4px 0 2px}
+h2{font-size:17px;margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h3{font-size:15px;margin:0 0 6px}
+.muted{color:var(--ink3);font-size:13px}
+.sub{color:var(--ink2)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row .sp{flex:1}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.grid2{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.empty{color:var(--ink3);text-align:center;padding:22px 10px;font-size:14px}
+.sec{font-family:var(--mono);font-size:12px;letter-spacing:1.5px;color:var(--accent);margin:18px 2px 4px}
+
+/* ---------- ⓘ 说明 ---------- */
+.info{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);color:var(--accent);font-weight:800;font-size:13px;cursor:pointer;padding:0;line-height:22px;flex:none}
+.infotext{display:none;background:var(--accent-soft);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:4px 0 10px;font-size:13.5px;color:var(--ink2);line-height:1.65}
+.infotext.show{display:block;animation:pop .2s both}
+
+/* ---------- 表单 ---------- */
+label{display:block;font-weight:700;font-size:13px;color:var(--ink2);margin:10px 0 5px}
+input,select,textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--input);color:var(--ink);font-size:15px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{min-height:90px;resize:vertical}
+textarea.code{font-family:var(--mono);font-size:13px;min-height:180px;white-space:pre}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);vertical-align:middle}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:14px;padding:11px 16px;font-weight:800;font-size:14.5px;cursor:pointer;text-decoration:none;background:var(--accent);color:var(--accent-ink);transition:transform .12s,box-shadow .2s}
+.btn:hover{box-shadow:0 0 18px var(--glow)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--panel2);color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--accent);box-shadow:none}
+.btn.red{background:var(--bad);color:#fff}
+.btn.green{background:var(--ok);color:#03140d}
+html:not(.dark) .btn.green{color:#fff}
+.btn.wa{background:#128c4a;color:#fff}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:11px}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.55;pointer-events:none}
+.seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--ink2);font-weight:800;font-size:13.5px;padding:8px 12px;border-radius:11px;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 13px;font-weight:800;font-size:13.5px;cursor:pointer}
+.chip small{font-weight:600;color:var(--ink3);margin-left:4px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip.on small{color:var(--accent-ink);opacity:.8}
+.chip.warn{border-color:var(--bad);color:var(--bad)}
+.chip.warn.on{background:var(--bad);color:#fff}
+.chip.arch{border-style:dashed;opacity:.75}
+
+/* ---------- 小标签 ---------- */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;background:var(--panel2);color:var(--ink2);border:1px solid var(--line2);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill.acc{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.lvl{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:0 6px}
+.live{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ink3)}
+.live.on{background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.6)}100%{box-shadow:0 0 0 10px rgba(52,211,153,0)}}
+.reddot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad)}
+
+/* ---------- 数字方块 / 长条 ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
+.tile{background:var(--panel2);border:1px solid var(--line2);border-radius:18px;padding:11px 12px}
+.tile small{display:block;color:var(--ink3);font-size:12px;font-weight:700}
+.tile b{display:block;font-family:var(--mono);font-size:26px;line-height:1.2;color:var(--ink)}
+.tile>span{font-size:12px;color:var(--ink3)}
+.bar{height:9px;border-radius:9px;background:var(--panel2);border:1px solid var(--line2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--accent),var(--blue));transform-origin:left;animation:grow .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ---------- 班级卡 ---------- */
+.cls{cursor:pointer;position:relative;margin:0}
+.cls:hover{border-color:var(--accent)}
+.cls .nm{font-size:17px;font-weight:800}
+.cls .wk{font-family:var(--mono);font-weight:800;color:var(--accent)}
+.cls .nowtag{position:absolute;top:12px;right:14px}
+
+/* ---------- 学生卡 ---------- */
+.stu{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:12px 14px;animation:pop .3s both}
+.stu .nm{font-weight:800;font-size:15.5px;cursor:pointer}
+.stu .nm:hover{color:var(--accent)}
+.att{display:inline-flex;gap:4px;flex-wrap:wrap}
+.att button{border:1px solid var(--line);background:var(--panel2);color:var(--ink2);border-radius:10px;padding:5px 9px;font-weight:800;font-size:13px;cursor:pointer}
+.att button.on.a-ok{background:var(--ok);border-color:var(--ok);color:#03140d}
+.att button.on.a-late{background:var(--warn);border-color:var(--warn);color:#1f1300}
+html:not(.dark) .att button.on.a-late{color:#fff}
+html:not(.dark) .att button.on.a-ok{color:#fff}
+.att button.on.a-make{background:var(--blue);border-color:var(--blue);color:#fff}
+.att button.on.a-abs{background:var(--bad);border-color:var(--bad);color:#fff}
+.pickbox{position:absolute;top:12px;right:12px}
+
+/* ---------- 表格（全览） ---------- */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px;border:1px solid var(--line2)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border-bottom:1px solid var(--line2);padding:6px 7px;text-align:center;white-space:nowrap}
+th{background:var(--panel2);color:var(--ink2);font-family:var(--mono);font-size:11.5px;position:sticky;top:0}
+td.l,th.l{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1;font-weight:800}
+th.l{background:var(--panel2);z-index:2}
+.m{display:inline-block;min-width:30px;padding:1px 5px;border-radius:7px;font-family:var(--mono);font-size:11px;font-weight:800;background:var(--panel2);color:var(--ink3)}
+.m.b{background:var(--accent-soft);color:var(--accent)}
+.m.c{background:var(--ok-soft);color:var(--ok)}
+.m.p{background:var(--warn-soft);color:var(--warn)}
+.m.x{background:var(--bad-soft);color:var(--bad)}
+
+/* ---------- 文件 ---------- */
+.file{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line2);background:var(--panel2);border-radius:16px;margin-top:8px}
+.file .fi{font-size:22px}
+.file .fn{font-weight:800;word-break:break-all}
+.file .sp{flex:1;min-width:0}
+
+/* ---------- 弹出视窗 ---------- */
+.back{position:fixed;inset:0;z-index:60;background:rgba(2,6,16,.55);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s both}
+@media(min-width:720px){.back{align-items:center}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:24px 24px 0 0;width:100%;max-width:640px;max-height:92vh;overflow:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom));animation:up .28s cubic-bezier(.2,.9,.3,1.1) both;box-shadow:0 -10px 40px rgba(0,0,0,.3)}
+@media(min-width:720px){.sheet{border-radius:24px}}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.sheet .x{float:right;border:0;background:var(--panel2);color:var(--ink);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer}
+.sheet .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-weight:700;font-size:14px;box-shadow:var(--shadow);animation:up .25s both;max-width:90vw;text-align:center}
+.toast.bad{background:var(--bad);color:#fff}
+
+/* ---------- 登入页 ---------- */
+.hero{text-align:center;padding:26px 10px 6px}
+.hero svg{width:74px;height:74px;filter:drop-shadow(0 0 18px var(--glow))}
+.hero h1{font-size:26px;letter-spacing:1px}
+.login{max-width:430px;margin:0 auto}
+.pinbox{font-family:var(--mono);font-size:26px;letter-spacing:10px;text-align:center}
+.err{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:10px 12px;margin-top:10px;font-weight:700;font-size:14px}
+.okbox{background:var(--ok-soft);color:var(--ok);border-radius:12px;padding:10px 12px;margin-top:10px;font-weight:700;font-size:14px}
+.who{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--accent);border-radius:18px;padding:10px 14px;margin:12px 0;box-shadow:0 0 22px var(--glow)}
+.who b{font-size:18px}
+.who .sp{flex:1}
+details.box{border:1px solid var(--line);border-radius:18px;background:var(--panel);margin:10px 0;overflow:hidden}
+details.box>summary{cursor:pointer;padding:12px 14px;font-weight:800;list-style:none;display:flex;gap:8px;align-items:center}
+details.box>summary::-webkit-details-marker{display:none}
+details.box>summary::after{content:"▸";margin-left:auto;color:var(--accent);transition:transform .2s}
+details.box[open]>summary::after{transform:rotate(90deg)}
+details.box>.in{padding:0 14px 14px}
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:60px 0;color:var(--ink3);font-family:var(--mono)}
+.loading i{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:blink 1s infinite alternate}
+.loading i:nth-child(2){animation-delay:.2s}.loading i:nth-child(3){animation-delay:.4s}
+@keyframes blink{from{opacity:.2;transform:scale(.7)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .top-in::after{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in" id="topbar"></div></header>
+<main class="wrap" id="app"><div class="loading"><i></i><i></i><i></i></div></main>
+<nav class="nav" id="nav" style="display:none"><div class="nav-in" id="navIn"></div></nav>
+<div id="modals"></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+"use strict";
+/* =================================================================
+   基本设定
+   ================================================================= */
+var CFG = window.IOT_CONFIG || {};
+var LEVELS = ["L1", "L2", "L3", "L4", "L5", "快车道"];
+var WEEKS = []; for (var _n = 1; _n <= 36; _n++) WEEKS.push("W" + _n);
+var TASKS = ["基础", "挑战1", "挑战2"];
+var ATTEND = [["✓", "出席", "a-ok"], ["迟", "迟到", "a-late"], ["补", "补课", "a-make"], ["缺", "缺席", "a-abs"]];
+var IDLE_MS = 60 * 60 * 1000;   // 学生闲置 1 小时自动登出
+var BUCKET = "teacher-files";
+var MAX_FILE = 30 * 1024 * 1024;
+var STORAGE_LIMIT = 1024 * 1024 * 1024;
+
+var sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: "iot_auth" }
+});
+
+var ME = null;        // whoami() 的结果
+var COURSE = null;    // course.json
+var CURR = {};        // 每个 Level 补满 W1-W36 的课程表
+var T = null;         // 老师的资料
+var S = null;         // 学生的资料
+var UI = { trackerCls: "", trackerTab: "progress", week: "", onlyTodo: false, pickMode: false, picks: {}, filesTarget: "", filesWeek: "", filesMode: "code" };
+try { UI.trackerCls = localStorage.getItem("iot_tracker_cls") || ""; } catch (e) {}
+
+/* =================================================================
+   小工具
+   ================================================================= */
+function $(id) { return document.getElementById(id); }
+function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function jsq(v) { return esc(JSON.stringify(String(v == null ? "" : v))); }   // 放进 onclick="f(...)" 里用
+function cleanName(v) { return String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, 40); }
+function nameKey(v) { return cleanName(v).toLowerCase(); }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function weekNum(w) { var m = /^W(\d+)$/.exec(String(w || "")); return m ? parseInt(m[1], 10) : 999; }
+function nextWeek(w) { return "W" + Math.min(36, (weekNum(w) === 999 ? 0 : weekNum(w)) + 1); }
+
+// 马来西亚时间（UTC+8）：云端不能用电脑的时区
+function myt() { return new Date(Date.now() + 8 * 3600 * 1000); }
+function todayMYT() { return myt().toISOString().slice(0, 10); }
+function nowHM() { var d = myt(); return pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes()); }
+function fmtTime(iso) {
+  if (!iso) return "";
+  var d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
+  return d.toISOString().slice(0, 10) + " " + pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
+}
+function weekdayOf(dateText) {   // 0 = 星期一（跟 Server.py 一样）
+  var d = new Date(String(dateText) + "T00:00:00Z");
+  return isNaN(d) ? null : (d.getUTCDay() + 6) % 7;
+}
+var WD = ["一", "二", "三", "四", "五", "六", "日"];
+
+// 开课日期：2027-01-05 以前加入 → 2027-01-02；之后 → 加入那天之后（含当天）最近的星期六
+function firstSat(d) {
+  if (!d) return "";
+  if (d < "2027-01-05") return "2027-01-02";
+  var t = new Date(d + "T00:00:00Z"); if (isNaN(t)) return "";
+  t.setUTCDate(t.getUTCDate() + ((6 - t.getUTCDay() + 7) % 7));
+  return t.toISOString().slice(0, 10);
+}
+function sizeText(n) {
+  n = Number(n) || 0;
+  if (n >= 1024 * 1024 * 1024) return (n / 1024 / 1024 / 1024).toFixed(2) + " GB";
+  if (n >= 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + " MB";
+  if (n >= 1024) return (n / 1024).toFixed(1) + " KB";
+  return n + " bytes";
+}
+function waNumber(phone) {
+  var s = String(phone || "").replace(/[^0-9+]/g, "");
+  if (s.charAt(0) === "+") s = s.slice(1);
+  if (s.charAt(0) === "0") s = "60" + s.slice(1);
+  return s;
+}
+function taskRank(t) { var i = TASKS.indexOf(t); return i >= 0 ? i + 1 : 0; }
+function completeRank(text) {
+  text = String(text || "");
+  if (text === "挑战 ✓") return 2;
+  return text.slice(-2) === " ✓" ? taskRank(text.slice(0, -2)) : 0;
+}
+function pendingRank(text) { text = String(text || ""); return text.slice(-4) === " 待检查" ? taskRank(text.slice(0, -4)) : 0; }
+function isPresent(a) { return a === "✓" || a === "迟" || a === "补"; }
+function infoBtn(html) {
+  var id = "inf" + Math.random().toString(36).slice(2, 9);
+  return '<button class="info" type="button" onclick="toggleInfo(\'' + id + '\')" aria-label="说明">i</button><div class="infotext" id="' + id + '">' + html + "</div>";
+}
+// ⓘ 的文字要放在标题下面，不是标题里面
+function infoPair(html) {
+  var id = "inf" + Math.random().toString(36).slice(2, 9);
+  return { btn: '<button class="info" type="button" onclick="toggleInfo(\'' + id + '\')" aria-label="说明">i</button>', box: '<div class="infotext" id="' + id + '">' + html + "</div>" };
+}
+function toggleInfo(id) { var el = $(id); if (el) el.classList.toggle("show"); }
+function reduceMotion() { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+function countUp(root) {
+  (root || document).querySelectorAll("[data-count]").forEach(function (el) {
+    var end = Number(el.getAttribute("data-count")) || 0;
+    if (reduceMotion() || end === 0) { el.textContent = end; return; }
+    var t0 = performance.now(), dur = 700;
+    function step(t) { var k = Math.min(1, (t - t0) / dur); el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  });
+}
+function chipSVG() {
+  return '<svg viewBox="0 0 64 64" fill="none"><rect x="14" y="14" width="36" height="36" rx="9" stroke="currentColor" stroke-width="3" style="color:var(--accent)"/>'
+    + '<rect x="24" y="24" width="16" height="16" rx="4" fill="var(--accent)"/>'
+    + '<g stroke="var(--accent)" stroke-width="3" stroke-linecap="round"><path d="M24 14V6M32 14V6M40 14V6M24 58v-8M32 58v-8M40 58v-8M14 24H6M14 32H6M14 40H6M58 24h-8M58 32h-8M58 40h-8"/></g></svg>';
+}
+
+/* ---------- 提示、对话框 ---------- */
+function toast(msg, bad) {
+  var el = document.createElement("div");
+  el.className = "toast" + (bad ? " bad" : "");
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function () { el.remove(); }, bad ? 4200 : 2400);
+}
+function openSheet(html, onClose) {
+  var back = document.createElement("div");
+  back.className = "back";
+  back.innerHTML = '<div class="sheet" role="dialog"><button class="x" type="button" aria-label="关掉">✕</button>' + html + "</div>";
+  function close() { back.remove(); document.removeEventListener("keydown", esck, true); if (onClose) onClose(); }
+  function esck(e) { if (e.key === "Escape") { e.stopPropagation(); close(); } }
+  back.addEventListener("click", function (e) { if (e.target === back) close(); });
+  back.querySelector(".x").addEventListener("click", close);
+  document.addEventListener("keydown", esck, true);
+  $("modals").appendChild(back);
+  back.close = close;
+  return back;
+}
+function closeSheets() { document.querySelectorAll("#modals .back").forEach(function (b) { b.close ? b.close() : b.remove(); }); }
+function ask(opts) {
+  return new Promise(function (resolve) {
+    var done = false;
+    var html = "<h2>" + esc(opts.title || "确认") + "</h2>"
+      + '<div class="sub" style="white-space:pre-wrap">' + esc(opts.text || "") + "</div>"
+      + (opts.input ? '<input id="askIn" style="margin-top:12px" value="' + esc(opts.value || "") + '" placeholder="' + esc(opts.placeholder || "") + '">' : "")
+      + '<div class="acts">' + (opts.alert ? "" : '<button class="btn ghost" id="askNo">' + esc(opts.no || "取消") + "</button>")
+      + '<button class="btn ' + (opts.danger ? "red" : "") + '" id="askYes">' + esc(opts.yes || "好") + "</button></div>";
+    var b = openSheet(html, function () { if (!done) { done = true; resolve(opts.input ? null : false); } });
+    var inp = b.querySelector("#askIn");
+    if (inp) { setTimeout(function () { inp.focus(); inp.select(); }, 50); inp.addEventListener("keydown", function (e) { if (e.key === "Enter") b.querySelector("#askYes").click(); }); }
+    b.querySelector("#askYes").onclick = function () { done = true; var v = inp ? inp.value : true; b.remove(); resolve(v); };
+    var no = b.querySelector("#askNo"); if (no) no.onclick = function () { done = true; b.remove(); resolve(opts.input ? null : false); };
+  });
+}
+function alertBox(text, title) { return ask({ title: title || "提示", text: text, alert: true, yes: "知道了" }); }
+async function askClear(lines) {
+  var v = await ask({ title: "要删除", text: lines.join("\n") + "\n\n确定的话，打 CLEAR（大写）：", input: true, placeholder: "CLEAR", yes: "删除", danger: true });
+  if (v === null) return false;
+  if (v.trim() !== "CLEAR") { await alertBox("没有打 CLEAR，所以没删。"); return false; }
+  return true;
+}
+function setSaving(text) { var el = $("saveState"); if (el) el.textContent = text; }
+function errText(e) { return (e && (e.message || e.error_description || e.error)) || String(e); }
+function friendlyDbError(e) {
+  var m = errText(e);
+  if (/students_level_name/.test(m)) return "这个 Level 已经有同名的学生了（如果真的同名，加个姓或缩写分开）";
+  if (/classes_code_key/.test(m)) return "这个 Code 已经有班在用了，换一个";
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "连不上网络，检查一下 WiFi / 数据";
+  return m;
+}
+
+/* =================================================================
+   课程表（course.json，跟 Server.py 的 Course/course.json 是同一份）
+   ================================================================= */
+function buildCurriculum(raw) {
+  var full = {};
+  LEVELS.forEach(function (level) {
+    var data = (raw && raw[level]) || {};
+    var weeks = data.w || [], topics = data.topics || [], ch = data.challenges || [];
+    var listed = {};
+    weeks.forEach(function (w, i) { listed[String(w)] = [topics[i] || "", ch[i] || ""]; });
+    var outT = [], outC = [];
+    for (var n = 1; n <= 36; n++) {
+      var w = "W" + n;
+      if (listed[w]) { outT.push(listed[w][0]); outC.push(listed[w][1]); }
+      else {
+        var t = "";
+        for (var k = n + 1; k <= 36; k++) { if (listed["W" + k]) { t = listed["W" + k][0] + "（前段）"; break; } }
+        outT.push(t); outC.push("");
+      }
+    }
+    full[level] = { topics: outT, challenges: outC };
+  });
+  return full;
+}
+function topicOf(level, week) { var c = CURR[level]; var i = WEEKS.indexOf(week); return c && i >= 0 ? (c.topics[i] || "") : ""; }
+function challengesOf(level, week) {
+  var c = CURR[level]; var i = WEEKS.indexOf(week);
+  var text = c && i >= 0 ? (c.challenges[i] || "") : "";
+  return String(text).split("★").slice(1).map(function (p) { return p.trim().replace(/^\/+|\/+$/g, "").trim(); }).filter(Boolean).slice(0, 2);
+}
+function weekOptions(level, selected, withGeneral) {
+  var h = withGeneral ? '<option value=""' + (!selected ? " selected" : "") + ">通用（不分周）</option>" : "";
+  WEEKS.forEach(function (w) {
+    var t = level ? topicOf(level, w) : "";
+    h += '<option value="' + w + '"' + (w === selected ? " selected" : "") + ">" + w + (t ? " · " + esc(t) : "") + "</option>";
+  });
+  return h;
+}
+async function loadCourse() {
+  try {
+    var r = await fetch("course.json", { cache: "no-cache" });
+    if (!r.ok) throw new Error(r.status);
+    COURSE = await r.json();
+    CURR = buildCurriculum(COURSE.curriculum || {});
+  } catch (e) {
+    COURSE = null; CURR = buildCurriculum({});
+  }
+}
+
+/* =================================================================
+   学生用的中英文
+   ================================================================= */
+var LANG = "zh";
+try { var _l = localStorage.getItem("iot_lang"); if (_l === "en" || _l === "zh") LANG = _l; } catch (e) {}
+var TX = {
+  zh: {
+    title: "自动工程实作课", stu_login: "学生登入", stu_sub: "打你的名字和 6 位数 PIN（问老师拿）。",
+    name: "你的名字", name_ph: "跟老师名单上的一样", pin: "学生 PIN（6 位数字）", go: "进去",
+    teacher_link: "我是老师 →", err_empty: "名字和 PIN 都要填。", err_wrong: "名字或 PIN 不对。PIN 问老师拿。",
+    err_locked: "这个名字打错太多次了，10 分钟后再试。", err_server: "服务器出错了，等一下再试。", err_net: "连不上网络，检查一下 WiFi / 数据。",
+    err_none: "你的账号找不到了，请问老师。", idle_out: "闲置超过 1 小时，自动登出了。再登入一次就好。",
+    you_are: "你是", not_me: "不是我", no_class: "（还没分班）",
+    nav_progress: "进度", nav_files: "文件",
+    my_progress: "我的进度", attended: "出席次数", done: "完成次数", weeks_rec: "有记录的周",
+    no_rec: "还没有记录。上课交了 Code，老师打勾以后就会出现。", summary: "老师的总结",
+    att_ok: "出席", att_late: "迟到", att_make: "补课", att_abs: "缺席", att_none: "未记录", not_done: "未完成", waiting: "等老师检查",
+    files: "老师的文件", no_files: "老师还没发文件。", download: "下载", general: "通用", for_all: "全部班",
+    logout_q: "要登出吗？", yes: "好", cancel: "取消"
+  },
+  en: {
+    title: "Automation Workshop", stu_login: "Student sign in", stu_sub: "Type your name and your 6-digit PIN (ask your teacher).",
+    name: "Your name", name_ph: "Same as on teacher's list", pin: "Student PIN (6 digits)", go: "Enter",
+    teacher_link: "I'm the teacher →", err_empty: "Please fill in your name and PIN.", err_wrong: "Wrong name or PIN. Ask your teacher for your PIN.",
+    err_locked: "Too many wrong tries for this name. Try again in 10 minutes.", err_server: "Server error. Please try again later.", err_net: "No internet. Check your WiFi / data.",
+    err_none: "Your account cannot be found. Please ask your teacher.", idle_out: "You were idle for over 1 hour, so you were signed out. Just sign in again.",
+    you_are: "You are", not_me: "Not me", no_class: "(no class yet)",
+    nav_progress: "Progress", nav_files: "Files",
+    my_progress: "My progress", attended: "Attended", done: "Completed", weeks_rec: "Weeks recorded",
+    no_rec: "No records yet. They appear after you submit code in class and your teacher checks it.", summary: "Teacher's summary",
+    att_ok: "Present", att_late: "Late", att_make: "Make-up", att_abs: "Absent", att_none: "Not recorded", not_done: "Not done", waiting: "Waiting for teacher",
+    files: "Teacher's files", no_files: "No files from your teacher yet.", download: "Download", general: "General", for_all: "All classes",
+    logout_q: "Sign out?", yes: "Yes", cancel: "Cancel"
+  }
+};
+function tx(k) { return (TX[LANG] && TX[LANG][k] != null) ? TX[LANG][k] : (TX.zh[k] || k); }
+function setLang(l) { LANG = l; try { localStorage.setItem("iot_lang", l); } catch (e) {} document.documentElement.lang = l === "en" ? "en" : "zh"; route(); }
+
+/* =================================================================
+   顶栏、底部导航
+   ================================================================= */
+function toggleTheme() {
+  var d = document.documentElement.classList.toggle("dark");
+  try { localStorage.setItem("iot_theme", d ? "dark" : "light"); } catch (e) {}
+  paintTop();
+}
+function paintTop() {
+  var dark = document.documentElement.classList.contains("dark");
+  var role = ME && ME.role;
+  var h = '<div class="brand">' + chipSVG() + "<span>" + (role === "student" || !role ? esc(tx("title")) : "自动工程实作课") + "</span><small>CLOUD</small></div><span class=\"sp\"></span>";
+  if (role === "teacher") h += '<span class="save" id="saveState"></span>';
+  if (role !== "teacher") h += '<button class="ibtn" onclick="setLang(LANG===\'zh\'?\'en\':\'zh\')">' + (LANG === "zh" ? "EN" : "中") + "</button>";
+  h += '<button class="ibtn" onclick="toggleTheme()" title="深色 / 浅色">' + (dark ? "☀️" : "🌙") + "</button>";
+  $("topbar").innerHTML = h;
+}
+var TEACHER_NAV = [["classes", "🏫", "上课"], ["tracker", "📊", "追踪表"], ["files", "📤", "文件"], ["settings", "⚙️", "设定"]];
+function studentNav() { return [["progress", "📊", tx("nav_progress")], ["files", "📥", tx("nav_files")]]; }
+function paintNav(prefix, items, active, dots) {
+  var nav = $("nav");
+  if (!items) { nav.style.display = "none"; return; }
+  nav.style.display = "";
+  $("navIn").innerHTML = items.map(function (it) {
+    return '<a href="#/' + prefix + "/" + it[0] + '" class="' + (it[0] === active ? "on" : "") + '"><i>' + it[1] + "</i>" + esc(it[2]) + ((dots && dots[it[0]]) ? '<span class="dot"></span>' : "") + "</a>";
+  }).join("");
+}
+
+/* =================================================================
+   路由
+   ================================================================= */
+function go(hash) { if (location.hash !== hash) location.hash = hash; else route(); }
+window.addEventListener("hashchange", function () { closeSheets(); route(); });
+
+function route() {
+  paintTop();
+  var h = location.hash.replace(/^#\/?/, "");
+  var parts = h.split("/");
+  var role = ME && ME.role;
+  if (role === "teacher") {
+    var page = parts[0] === "t" ? parts[1] : "";
+    if (!page || !TEACHER_PAGES[page]) { go("#/t/classes"); return; }
+    paintNav("t", TEACHER_NAV, page, { classes: (T && T.classes || []).some(needWeek) });
+    TEACHER_PAGES[page]();
+    return;
+  }
+  if (role === "student") {
+    var sp = parts[0] === "s" ? parts[1] : "";
+    if (!sp || !STUDENT_PAGES[sp]) { go("#/s/progress"); return; }
+    paintNav("s", studentNav(), sp);
+    STUDENT_PAGES[sp]();
+    return;
+  }
+  paintNav(null);
+  if (parts[0] === "teacher") renderTeacherLogin(); else renderStudentLogin();
+}
+
+/* =================================================================
+   登入
+   ================================================================= */
+var LOGIN_MSG = "";
+function renderStudentLogin() {
+  var app = $("app");
+  app.innerHTML = '<div class="hero">' + chipSVG() + "<h1>" + esc(tx("title")) + '</h1><div class="muted mono">IoT · ARDUINO · ESP32</div></div>'
+    + '<div class="card login glow"><h2>🎓 ' + esc(tx("stu_login")) + '</h2><div class="muted">' + esc(tx("stu_sub")) + "</div>"
+    + (LOGIN_MSG ? '<div class="okbox">' + esc(LOGIN_MSG) + "</div>" : "")
+    + "<label>" + esc(tx("name")) + '</label><input id="lgName" autocomplete="off" autocapitalize="words" placeholder="' + esc(tx("name_ph")) + '">'
+    + "<label>" + esc(tx("pin")) + '</label><input id="lgPin" class="pinbox" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••">'
+    + '<div id="lgErr"></div><button class="btn wide" style="margin-top:14px" id="lgGo" onclick="studentLogin()">' + esc(tx("go")) + "</button>"
+    + '<div style="text-align:right;margin-top:14px"><a href="#/teacher" class="muted">' + esc(tx("teacher_link")) + "</a></div></div>";
+  $("lgPin").addEventListener("keydown", function (e) { if (e.key === "Enter") studentLogin(); });
+  $("lgName").addEventListener("keydown", function (e) { if (e.key === "Enter") $("lgPin").focus(); });
+  $("lgPin").addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 6); });
+}
+async function callFn(name, body) {
+  var sess = (await sb.auth.getSession()).data.session;
+  var r = await fetch(CFG.SUPABASE_URL + "/functions/v1/" + name, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: CFG.SUPABASE_KEY, Authorization: "Bearer " + (sess ? sess.access_token : CFG.SUPABASE_KEY) },
+    body: JSON.stringify(body || {})
+  });
+  var j = null;
+  try { j = await r.json(); } catch (e) { j = { ok: false, error: "HTTP " + r.status }; }
+  return j;
+}
+async function studentLogin() {
+  var name = cleanName($("lgName").value), pin = $("lgPin").value.trim();
+  var err = $("lgErr"); err.innerHTML = "";
+  if (!name || !pin) { err.innerHTML = '<div class="err">' + esc(tx("err_empty")) + "</div>"; return; }
+  var btn = $("lgGo"); btn.disabled = true;
+  try {
+    var j = await callFn("student-login", { name: name, pin: pin });
+    if (!j.ok) {
+      var k = { empty: "err_empty", wrong: "err_wrong", locked: "err_locked" }[j.code] || "err_server";
+      err.innerHTML = '<div class="err">' + esc(tx(k)) + "</div>"; btn.disabled = false; return;
+    }
+    var s = await sb.auth.setSession({ access_token: j.access_token, refresh_token: j.refresh_token });
+    if (s.error) throw s.error;
+    markActive(true);
+    LOGIN_MSG = "";
+    await boot();
+  } catch (e) {
+    err.innerHTML = '<div class="err">' + esc(tx("err_net")) + "</div>"; btn.disabled = false;
+  }
+}
+function renderTeacherLogin() {
+  $("app").innerHTML = '<div class="hero">' + chipSVG() + '<h1>老师登入</h1><div class="muted mono">TEACHER CONSOLE</div></div>'
+    + '<div class="card login glow"><label>Email</label><input id="tEmail" type="email" autocomplete="username">'
+    + '<label>密码</label><input id="tPass" type="password" autocomplete="current-password">'
+    + '<div id="tErr"></div><button class="btn wide" style="margin-top:14px" id="tGo" onclick="teacherLogin()">登入</button>'
+    + '<div style="margin-top:14px"><a href="#/login" class="muted">← 学生登入</a></div></div>';
+  $("tPass").addEventListener("keydown", function (e) { if (e.key === "Enter") teacherLogin(); });
+}
+async function teacherLogin() {
+  var btn = $("tGo"); btn.disabled = true; $("tErr").innerHTML = "";
+  var r = await sb.auth.signInWithPassword({ email: $("tEmail").value.trim(), password: $("tPass").value });
+  if (r.error) {
+    $("tErr").innerHTML = '<div class="err">' + esc(/invalid/i.test(r.error.message) ? "Email 或密码不对" : friendlyDbError(r.error)) + "</div>";
+    btn.disabled = false; return;
+  }
+  await boot();
+  if (!ME || ME.role !== "teacher") {
+    await sb.auth.signOut(); ME = null; LOGIN_MSG = "";
+    location.hash = "#/teacher";
+    renderTeacherLogin();
+    $("tErr").innerHTML = '<div class="err">这个账号不是老师账号。（设定步骤第 3 步要在 SQL Editor 把它设成老师）</div>';
+  }
+}
+async function logout(msg) {
+  try { await sb.auth.signOut(); } catch (e) {}
+  ME = null; T = null; S = null; LOGIN_MSG = msg || "";
+  go("#/login");
+}
+async function studentLogoutAsk() {
+  if (await ask({ title: tx("logout_q"), yes: tx("yes"), no: tx("cancel") })) logout();
+}
+
+/* ---------- 学生闲置 1 小时自动登出 ---------- */
+var _lastMark = 0;
+function markActive(force) {
+  var now = Date.now();
+  if (!force && now - _lastMark < 15000) return;
+  _lastMark = now;
+  try { localStorage.setItem("iot_last_act", String(now)); } catch (e) {}
+}
+function idleTooLong() {
+  var last = 0; try { last = Number(localStorage.getItem("iot_last_act")) || 0; } catch (e) {}
+  return last && Date.now() - last > IDLE_MS;
+}
+["pointerdown", "keydown", "scroll", "touchstart"].forEach(function (ev) { window.addEventListener(ev, function () { markActive(false); }, { passive: true }); });
+setInterval(function () {
+  if (ME && ME.role === "student" && idleTooLong()) logout(tx("idle_out"));
+}, 30000);
+
+/* =================================================================
+   开机
+   ================================================================= */
+async function boot() {
+  var sess = (await sb.auth.getSession()).data.session;
+  if (!sess) { ME = null; route(); return; }
+  var w = await sb.rpc("whoami");
+  if (w.error) { ME = null; toast(friendlyDbError(w.error), true); route(); return; }
+  ME = w.data;
+  if (ME.role === "student") {
+    if (idleTooLong()) { await logout(tx("idle_out")); return; }
+    markActive(true);
+    await loadStudent();
+  } else if (ME.role === "teacher") {
+    sb.rpc("teacher_ping");
+    await loadTeacher();
+  } else {
+    await sb.auth.signOut(); ME = null; LOGIN_MSG = tx("err_none");
+  }
+  route();
+}
+
+/* =================================================================
+   老师：资料
+   ================================================================= */
+async function fetchAll(table, order) {
+  var out = [], from = 0;
+  for (;;) {
+    var q = sb.from(table).select("*").range(from, from + 999);
+    if (order) q = q.order(order[0], { ascending: order[1] !== false });
+    var r = await q;
+    if (r.error) throw r.error;
+    out = out.concat(r.data || []);
+    if (!r.data || r.data.length < 1000) break;
+    from += 1000;
+  }
+  return out;
+}
+async function loadTeacher() {
+  try {
+    var res = await Promise.all([
+      fetchAll("classes", ["created_at"]), fetchAll("students", ["name"]), fetchAll("progress"),
+      fetchAll("class_notes"), fetchAll("teacher_files", ["created_at", false])
+    ]);
+    T = { classes: res[0], students: res[1], progress: {}, notes: {}, files: res[4], loadedAt: Date.now() };
+    res[2].forEach(function (p) { (T.progress[p.student_id] = T.progress[p.student_id] || {})[p.week] = p; });
+    res[3].forEach(function (n) { (T.notes[n.class_id] = T.notes[n.class_id] || {})[n.week] = n; });
+  } catch (e) {
+    toast("载入失败：" + friendlyDbError(e), true);
+    T = T || { classes: [], students: [], progress: {}, notes: {}, files: [] };
+  }
+}
+function findClass(id) { for (var i = 0; T && i < T.classes.length; i++) if (T.classes[i].id === id) return T.classes[i]; return null; }
+function findStudent(id) { for (var i = 0; T && i < T.students.length; i++) if (T.students[i].id === id) return T.students[i]; return null; }
+function studentsOf(cls) { return T.students.filter(function (s) { return s.class_id === cls.id; }).sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; }); }
+function unbound() { return T.students.filter(function (s) { return !s.class_id || !findClass(s.class_id); }); }
+function cellOf(sid, week) { return ((T.progress[sid] || {})[week]) || {}; }
+
+/* ---------- 现在是哪一班（跟 Server.py 一样的排法） ---------- */
+var CLASS_MINUTES = 120, CLASS_EARLY = 30;
+function classSlot(c) {
+  if (!c.date || !c.time) return null;
+  var wd = weekdayOf(c.date); var hm = String(c.time).split(":");
+  if (wd === null || hm.length < 2) return null;
+  return [wd, parseInt(hm[0], 10) * 60 + parseInt(hm[1], 10)];
+}
+function classRank(c) {
+  if (c.archived) return [9, 0];
+  var slot = classSlot(c), d = myt();
+  var wdNow = (d.getUTCDay() + 6) % 7, minute = d.getUTCHours() * 60 + d.getUTCMinutes();
+  var today = slot && slot[0] === wdNow;
+  var inSlot = today && slot[1] - CLASS_EARLY <= minute && minute < slot[1] + CLASS_MINUTES;
+  var gap = today ? Math.abs(slot[1] - minute) : 9999;
+  if (c.open && inSlot) return [0, gap];
+  if (inSlot) return [1, gap];
+  if (c.open) return [2, gap];
+  if (today) return [slot[1] > minute ? 3 : 4, gap];
+  return [5, 0];
+}
+function classesByNow() {
+  return T.classes.map(function (c, i) { return [c, classRank(c), i]; })
+    .sort(function (a, b) { return a[1][0] - b[1][0] || a[1][1] - b[1][1] || a[2] - b[2]; })
+    .map(function (x) { return x[0]; });
+}
+function needWeek(c) {
+  var last = (c.sessions || {})[c.week];
+  return !c.open && !c.demo && !c.archived && !!last && last < todayMYT();
+}
+function timeText(c) {
+  var s = classSlot(c);
+  if (!s) return "还没上过课";
+  var st = s[1], en = s[1] + CLASS_MINUTES;
+  return "星期" + WD[s[0]] + " " + pad2(Math.floor(st / 60)) + ":" + pad2(st % 60) + "–" + pad2(Math.floor(en / 60) % 24) + ":" + pad2(en % 60);
+}
+function weekStats(c) {
+  var list = studentsOf(c), present = 0, done = 0;
+  list.forEach(function (s) { var p = cellOf(s.id, c.week); if (isPresent(p.attend)) present++; if (completeRank(p.complete) >= 1) done++; });
+  return { total: list.length, present: present, done: done };
+}
+
+/* =================================================================
+   老师页 1：上课
+   ================================================================= */
+var _classTimer = null;
+function pageClasses() {
+  var app = $("app");
+  var list = classesByNow();
+  var active = list.filter(function (c) { return !c.archived; });
+  var archived = list.filter(function (c) { return c.archived; });
+  var first = active[0]; var firstRank = first ? classRank(first)[0] : 9;
+  var ip = infoPair("一个班就是一个固定时段的一群学生。每次上课：点开那个班 → 选「今天第几周」→ 按 <b>▶ 开始上课</b>。下课按 <b>■ 下课</b>。几个班可以同时上课。<br>普通班的学生用「名字 + PIN」登入，<b>不用打班级 Code</b>。<br>最上面那张是「现在这班」（照上次上课的星期几、时间推算）。");
+  var h = '<div class="row" style="margin-top:6px"><h1>🏫 我的班</h1>' + ip.btn + '<span class="sp"></span><button class="btn ghost sm" onclick="refreshTeacher()">↻ 刷新</button></div>' + ip.box;
+  if (!active.length) h += '<div class="card"><div class="empty">还没有班 → 在下面「开一个新班」填班名。</div></div>';
+  h += '<div class="grid" style="margin-top:8px">';
+  active.forEach(function (c, i) {
+    var st = weekStats(c), isNow = i === 0 && firstRank <= 2;
+    var pct = st.total ? Math.round(st.present * 100 / st.total) : 0;
+    h += '<div class="card cls' + (isNow || c.open ? " glow" : "") + '" style="animation-delay:' + (i * 40) + 'ms" onclick="openClass(' + jsq(c.id) + ')">'
+      + (isNow ? '<span class="nowtag pill acc">现在这班</span>' : "")
+      + '<div class="row" style="gap:8px"><span class="live' + (c.open ? " on" : "") + '"></span><span class="nm">' + esc(c.name) + '</span><span class="lvl">' + esc(c.level) + "</span>" + (needWeek(c) ? '<span class="reddot" title="记得换周"></span>' : "") + "</div>"
+      + '<div style="margin-top:6px"><span class="wk">' + esc(c.week) + '</span> <span class="sub">' + esc(topicOf(c.level, c.week)) + "</span></div>"
+      + '<div class="muted">🕘 ' + esc(timeText(c)) + (c.open ? ' · <b style="color:var(--ok)">上课中</b>' : "") + "</div>"
+      + '<div class="tiles"><div class="tile"><small>学生</small><b data-count="' + st.total + '">0</b></div>'
+      + '<div class="tile"><small>' + esc(c.week) + " 出席</small><b><span data-count=\"" + st.present + '">0</span><span style="font-size:15px;color:var(--ink3)">/' + st.total + "</span></b></div></div>"
+      + '<div class="bar" style="margin-top:10px"><i style="width:' + pct + '%"></i></div>'
+      + "</div>";
+  });
+  h += "</div>";
+  if (archived.length) {
+    h += '<details class="box"><summary>📦 已归档的班（' + archived.length + "）</summary><div class=\"in\">"
+      + archived.map(function (c) { return '<div class="file" style="cursor:pointer" onclick="openClass(' + jsq(c.id) + ')"><span class="fi">📦</span><div class="sp"><div class="fn">' + esc(c.name) + ' <span class="lvl">' + esc(c.level) + '</span></div><div class="muted">已归档 · 学生下载文件还可以</div></div></div>'; }).join("")
+      + "</div></details>";
+  }
+  var ip2 = infoPair("班名不用写 Level，例如「星期六 10am」。<br>体验班（不用 PIN、打名字就进）在第 3 阶段做。");
+  h += '<div class="card"><h2>➕ 开一个新班 ' + ip2.btn + "</h2>" + ip2.box
+    + '<div class="grid2"><div><label>班名</label><input id="ncName" placeholder="例如：星期六 10am"></div>'
+    + '<div><label>Level</label><select id="ncLevel">' + LEVELS.map(function (l) { return "<option>" + l + "</option>"; }).join("") + "</select></div></div>"
+    + '<button class="btn" style="margin-top:12px" onclick="createClass()">开这个班</button></div>';
+  app.innerHTML = h;
+  countUp(app);
+  clearInterval(_classTimer);
+  _classTimer = setInterval(function () { if (location.hash === "#/t/classes" && document.visibilityState === "visible" && !document.querySelector("#modals .back")) refreshTeacher(true); }, 60000);
+}
+async function refreshTeacher(quiet) {
+  await loadTeacher();
+  if (!quiet) toast("✅ 刷新好了");
+  route();
+}
+async function createClass() {
+  var name = cleanName($("ncName").value), level = $("ncLevel").value;
+  if (!name) { alertBox("先填班名，例如：星期六 10am"); return; }
+  var r = await sb.from("classes").insert({ name: name, level: level }).select().single();
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  T.classes.push(r.data);
+  toast("✅ 开好了：" + name);
+  route();
+}
+function openClass(id) {
+  var c = findClass(id); if (!c) return;
+  var st = weekStats(c);
+  var wk = needWeek(c) ? nextWeek(c.week) : c.week;
+  var h = '<div class="row" style="gap:8px"><span class="live' + (c.open ? " on" : "") + '"></span><h2 style="margin:0">' + esc(c.name) + '</h2><span class="lvl">' + esc(c.level) + "</span></div>";
+  if (c.archived) {
+    h += '<div class="sub" style="margin-top:10px">这个班已经归档。学生下载文件还可以，不能上课。</div>'
+      + '<div class="acts"><button class="btn" onclick="archiveClass(' + jsq(id) + ',false)">↩ 取消归档</button><button class="btn red" onclick="deleteClass(' + jsq(id) + ')">🗑 删除这个班</button></div>';
+    openSheet(h); return;
+  }
+  if (c.open) h += '<div class="okbox">● 上课中 · ' + esc(c.week) + " · " + esc(c.date || "") + " " + esc(c.time || "") + "</div>";
+  else h += '<div class="muted" style="margin-top:6px">没在上课</div>';
+  if (needWeek(c)) h += '<div class="pill warn" style="margin-top:8px">上次已经上过 ' + esc(c.week) + "，帮你选了 " + esc(wk) + "</div>";
+  h += '<div class="tiles"><div class="tile"><small>学生</small><b>' + st.total + '</b></div><div class="tile"><small>' + esc(c.week) + ' 出席</small><b>' + st.present + '/' + st.total + '</b></div><div class="tile"><small>' + esc(c.week) + ' 完成</small><b>' + st.done + "/" + st.total + "</b></div></div>"
+    + "<label>今天第几周</label><select id=\"cWeek\">" + weekOptions(c.level, wk) + "</select>"
+    + '<details class="box" style="margin-top:12px"' + (c.open ? " open" : "") + "><summary>🕘 日期、时间（不改就用今天、现在）</summary><div class=\"in\"><div class=\"grid2\">"
+    + '<div><label>日期</label><input type="date" id="cDate" value="' + esc(c.open && c.date ? c.date : todayMYT()) + '"></div>'
+    + '<div><label>时间（24 小时）</label><input type="time" id="cTime" value="' + esc(c.open && c.time ? c.time : nowHM()) + '"></div></div></div></details>'
+    + '<div class="acts">' + (c.open ? '<button class="btn" onclick="startClass(' + jsq(id) + ')">↻ 更新这堂</button><button class="btn red" onclick="stopClass(' + jsq(id) + ')">■ 下课</button>'
+      : '<button class="btn" onclick="startClass(' + jsq(id) + ')">▶ 开始上课</button>')
+    + '<button class="btn ghost" onclick="trackerFor(' + jsq(id) + ')">📊 看追踪表</button></div>'
+    + '<details class="box" style="margin-top:16px"><summary>⋯ 更多</summary><div class="in"><div class="acts" style="margin-top:0">'
+    + '<button class="btn ghost" onclick="renameClass(' + jsq(id) + ')">✏️ 改班名</button>'
+    + '<button class="btn ghost" onclick="archiveClass(' + jsq(id) + ',true)">📦 归档（学期结束不用了）</button>'
+    + '<button class="btn red" onclick="deleteClass(' + jsq(id) + ')">🗑 删除这个班</button></div>'
+    + '<div class="muted" style="margin-top:10px">班级 Code：<b class="mono">' + esc(c.code) + "</b>（普通班用不到，体验班才会用）</div></div></details>";
+  openSheet(h);
+}
+function trackerFor(id) { UI.trackerCls = id; try { localStorage.setItem("iot_tracker_cls", id); } catch (e) {} UI.week = ""; go("#/t/tracker"); }
+async function startClass(id) {
+  var wk = $("cWeek").value, dt = $("cDate").value, tm = $("cTime").value;
+  if (!dt || !tm) { alertBox("日期和时间都要填（时间用 24 小时，例如 14:30）"); return; }
+  var r = await sb.rpc("start_class", { p_id: id, p_week: wk, p_date: dt, p_time: tm.slice(0, 5) });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  closeSheets(); await refreshTeacher(true); toast("▶ 开始上课：" + wk);
+}
+async function stopClass(id) {
+  var c = findClass(id);
+  if (!await ask({ title: "下课？", text: "「" + c.name + "」下课？\n下课后学生在中心交 Code 就不算这堂的出席。", yes: "■ 下课", danger: true })) return;
+  var r = await sb.rpc("stop_class", { p_id: id });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  closeSheets(); await refreshTeacher(true); toast("■ 下课了");
+}
+async function renameClass(id) {
+  var c = findClass(id);
+  var name = await ask({ title: "改班名", text: "班名（不用写 Level）：", input: true, value: c.name, yes: "保存" });
+  if (name === null) return;
+  name = cleanName(name); if (!name) { alertBox("班名不能空白"); return; }
+  var r = await sb.from("classes").update({ name: name }).eq("id", id);
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  c.name = name; closeSheets(); route();
+}
+async function archiveClass(id, on) {
+  var c = findClass(id);
+  if (on && !await ask({ title: "归档？", text: "把「" + c.name + "」归档？\n归档后不能上课，学生下载文件还可以。随时可以取消归档。", yes: "📦 归档" })) return;
+  var r = await sb.from("classes").update(on ? { archived: true, open: false } : { archived: false }).eq("id", id);
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  closeSheets(); await refreshTeacher(true);
+}
+async function deleteClass(id) {
+  var c = findClass(id);
+  if (!await askClear(["要删除这个班：", "· " + c.name + "（" + c.level + "）", "", "学生和追踪表都还在（学生会变成「未绑班」）；", "但发给这个班的文件学生就看不到了。"])) return;
+  var r = await sb.from("classes").delete().eq("id", id);
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  closeSheets(); await refreshTeacher(true); toast("🗑 删掉了");
+}
+
+/* =================================================================
+   老师页 2：追踪表
+   ================================================================= */
+function trackerClass() {
+  if (UI.trackerCls === "__unbound__") return null;
+  var c = findClass(UI.trackerCls);
+  if (!c) {
+    var nowFirst = classesByNow().filter(function (x) { return !x.archived; })[0] || T.classes[0];
+    c = nowFirst || null; UI.trackerCls = c ? c.id : (unbound().length ? "__unbound__" : "");
+  }
+  return c;
+}
+function setTrackerCls(id) { UI.trackerCls = id; UI.week = ""; UI.picks = {}; UI.pickMode = false; try { localStorage.setItem("iot_tracker_cls", id); } catch (e) {} pageTracker(); }
+function setTrackerTab(t) { UI.trackerTab = t; pageTracker(); }
+function pageTracker() {
+  var app = $("app");
+  var c = trackerClass();
+  var unb = UI.trackerCls === "__unbound__";
+  var ip = infoPair("先选班。学生交 Code 会自动打出席（第 2 阶段），完成度先标 🟡 待检查，你打勾才算完成。<br>流程：写好总结 → 按 <b>💬 WhatsApp</b> 发给家长。<br>学生用「名字 + 6 位 PIN」登入，PIN 在「学生名单」点进学生就看得到。");
+  var h = '<div class="row" style="margin-top:6px"><h1>📊 追踪表</h1>' + ip.btn + '<span class="sp"></span><button class="btn ghost sm" onclick="exportExcel()">📥 导出 Excel</button></div>' + ip.box;
+  var act = classesByNow().filter(function (x) { return !x.archived; });
+  var arc = classesByNow().filter(function (x) { return x.archived && studentsOf(x).length; });
+  h += '<div class="chips">' + act.concat(arc).map(function (x) {
+    return '<button class="chip' + (c && x.id === c.id ? " on" : "") + (x.archived ? " arch" : "") + '" onclick="setTrackerCls(' + jsq(x.id) + ')">' + esc(x.name) + "<small>" + esc(x.level) + " · " + studentsOf(x).length + " 人</small></button>";
+  }).join("") + '<button class="chip warn' + (unb ? " on" : "") + '" onclick="setTrackerCls(\'__unbound__\')">⚠ 未绑班<small>' + unbound().length + " 人</small></button></div>";
+  if (unb) { app.innerHTML = h + unboundHTML(); return; }
+  if (!c) { app.innerHTML = h + '<div class="card"><div class="empty">还没有班 → 先去「🏫 上课」开班。</div></div>'; return; }
+  if (!UI.week) UI.week = c.week || "W1";
+  h += '<div class="row" style="margin:10px 0 4px"><div class="seg">'
+    + [["students", "👥 学生名单"], ["progress", "📊 完成度 + 出席"], ["today", "📝 今天的状况"]].map(function (t) { return '<button class="' + (UI.trackerTab === t[0] ? "on" : "") + '" onclick="setTrackerTab(\'' + t[0] + '\')">' + t[1] + "</button>"; }).join("")
+    + "</div></div>";
+  if (UI.trackerTab === "students") h += studentsHTML(c);
+  else if (UI.trackerTab === "today") h += todayHTML(c);
+  else h += progressHTML(c);
+  app.innerHTML = h;
+  countUp(app);
+}
+
+/* ---------- 未绑班 ---------- */
+function unboundHTML() {
+  var list = unbound();
+  if (!list.length) return '<div class="card"><div class="empty">✅ 全部学生都绑好班了。</div></div>';
+  return '<div class="card"><h2>⚠ 还没绑班的学生</h2><div class="muted" style="margin-bottom:8px">没绑班的学生不会出现在任何班的名单里。帮他选好班就会搬过去。</div><div class="grid">'
+    + list.map(function (s) {
+      var opts = '<option value="">⚠ 还没绑班</option>' + T.classes.filter(function (c) { return c.level === s.level && !c.archived; }).map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.name) + "</option>"; }).join("");
+      return '<div class="stu"><div class="row"><span class="nm" onclick="openStudent(' + jsq(s.id) + ')">' + esc(s.name) + '</span><span class="lvl">' + esc(s.level) + '</span></div><div class="muted">' + esc([s.grade, s.school].filter(Boolean).join(" · ")) + '</div><select style="margin-top:8px" onchange="bindStudent(' + jsq(s.id) + ',this.value)">' + opts + "</select></div>";
+    }).join("") + "</div></div>";
+}
+async function bindStudent(sid, cid) {
+  if (!cid) return;
+  var r = await sb.from("students").update({ class_id: cid }).eq("id", sid);
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  findStudent(sid).class_id = cid; toast("✅ 绑好了"); pageTracker();
+}
+
+/* ---------- 学生名单 ---------- */
+function studentsHTML(c) {
+  var list = studentsOf(c);
+  var h = '<div class="row" style="margin-top:10px"><b>' + esc(c.name) + '</b><span class="lvl">' + esc(c.level) + '</span><span class="muted">共 ' + list.length + ' 位</span><span class="sp"></span>'
+    + '<button class="btn ghost sm" onclick="togglePick()">' + (UI.pickMode ? "完成选择" : "☑ 选择") + "</button>"
+    + '<button class="btn sm" onclick="addStudentSheet(' + jsq(c.id) + ')">➕ 加学生</button></div>';
+  if (UI.pickMode) {
+    var n = Object.keys(UI.picks).filter(function (k) { return UI.picks[k]; }).length;
+    h += '<div class="card flat" style="padding:10px 14px"><div class="row"><span>已选 <b>' + n + '</b> 位</span><span class="sp"></span><button class="btn red sm" onclick="deletePicked()">🗑 删除打勾的学生</button></div></div>';
+  }
+  if (!list.length) return h + '<div class="card"><div class="empty">这个班还没有学生 → 按「➕ 加学生」。<br>（导入网站报名在第 3 阶段做）</div></div>';
+  h += '<div class="grid" style="margin-top:10px">';
+  list.forEach(function (s, i) {
+    h += '<div class="stu" style="position:relative;animation-delay:' + Math.min(i * 25, 400) + 'ms">'
+      + (UI.pickMode ? '<input type="checkbox" class="pickbox"' + (UI.picks[s.id] ? " checked" : "") + ' onchange="UI.picks[' + jsq(s.id) + ']=this.checked;pageTracker()">' : "")
+      + '<div class="row" style="gap:8px"><span class="muted mono">' + (i + 1) + '</span><span class="nm" onclick="openStudent(' + jsq(s.id) + ')">' + esc(s.name) + "</span></div>"
+      + '<div class="muted">' + esc([s.grade, s.school].filter(Boolean).join(" · ") || "—") + "</div>"
+      + '<div class="row" style="margin-top:6px"><span class="pill acc mono">PIN ' + esc(s.pin) + "</span>" + (s.start_date ? '<span class="pill">开课 ' + esc(s.start_date) + "</span>" : "") + "</div></div>";
+  });
+  return h + "</div>";
+}
+function togglePick() { UI.pickMode = !UI.pickMode; UI.picks = {}; pageTracker(); }
+async function deletePicked() {
+  var ids = Object.keys(UI.picks).filter(function (k) { return UI.picks[k]; });
+  if (!ids.length) { alertBox("先在要删的学生右上角打勾。"); return; }
+  var names = ids.map(function (id) { return findStudent(id).name; });
+  if (!await askClear(["要删除这 " + ids.length + " 位学生：", "· " + names.join("\n· "), "", "他们整年的出席、完成度、总结会一起删（备份里还有）。"])) return;
+  var r = await sb.from("students").delete().in("id", ids);
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  UI.picks = {}; UI.pickMode = false; await refreshTeacher(true); toast("🗑 删掉了 " + ids.length + " 位");
+}
+function classSelect(id, level, selected) {
+  return '<select id="' + id + '"><option value="">⚠ 还没绑班</option>' + T.classes.filter(function (c) { return c.level === level && (!c.archived || c.id === selected); }).map(function (c) {
+    return '<option value="' + esc(c.id) + '"' + (c.id === selected ? " selected" : "") + ">" + esc(c.name) + (c.archived ? "（已归档）" : "") + "</option>";
+  }).join("") + "</select>";
+}
+function addStudentSheet(cid) {
+  var c = findClass(cid);
+  var b = openSheet("<h2>➕ 加学生 · " + esc(c.name) + ' <span class="lvl">' + esc(c.level) + "</span></h2>"
+    + '<div class="grid2"><div><label>学生姓名 *</label><input id="nName"></div><div><label>班</label>' + classSelect("nClass", c.level, c.id) + "</div>"
+    + '<div><label>年级</label><input id="nGrade" placeholder="例如 小六"></div><div><label>学校</label><input id="nSchool"></div>'
+    + '<div><label>家长姓名</label><input id="nParent"></div><div><label>家长电话</label><input id="nPhone" placeholder="例如 012-345 6789"></div>'
+    + '<div><label>加入日期</label><input id="nDate" type="date" value="' + todayMYT() + '"><div class="muted" id="nStart"></div></div></div>'
+    + '<label>备注</label><input id="nNote">'
+    + '<div class="muted" style="margin-top:8px">名字要跟学生登入时打的一样（大小写没关系）。系统会自动给一个 6 位数 PIN。</div>'
+    + '<div class="acts"><button class="btn" onclick="addStudent(' + jsq(c.level) + ')">加进去</button></div>');
+  function paint() { var d = $("nDate").value; $("nStart").textContent = d ? "→ 开课日期：" + firstSat(d) + (d < "2027-01-05" ? "（1 月 5 日以前加入，都从第一期开课）" : "（最近的星期六）") : ""; }
+  b.querySelector("#nDate").addEventListener("change", paint); paint();
+  setTimeout(function () { $("nName").focus(); }, 60);
+}
+async function addStudent(level) {
+  var name = cleanName($("nName").value);
+  if (!name) { alertBox("先填学生姓名"); return; }
+  var jd = $("nDate").value || todayMYT();
+  var row = { level: level, name: name, class_id: $("nClass").value || null, grade: $("nGrade").value.trim(), school: $("nSchool").value.trim(),
+    parent: $("nParent").value.trim(), phone: $("nPhone").value.trim(), join_date: jd, start_date: firstSat(jd) || null, note: $("nNote").value.trim() };
+  var r = await sb.from("students").insert(row).select().single();
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  T.students.push(r.data); closeSheets(); pageTracker();
+  toast("✅ 加好了：" + name + " · PIN " + r.data.pin);
+}
+function openStudent(sid) {
+  var s = findStudent(sid); if (!s) return;
+  var wa = waNumber(s.phone);
+  var f = function (key, label, type, ph) { return "<div><label>" + label + '</label><input id="e_' + key + '" type="' + (type || "text") + '" value="' + esc(s[key] || "") + '" placeholder="' + esc(ph || "") + '" onchange="saveStudentField(' + jsq(sid) + ",'" + key + "',this.value)\"></div>"; };
+  openSheet('<h2>👤 ' + esc(s.name) + ' <span class="lvl">' + esc(s.level) + "</span></h2>"
+    + '<div class="tile" style="text-align:center"><small>学生 PIN（登入用）</small><b class="mono" style="font-size:32px;letter-spacing:6px" id="pinShow">' + esc(s.pin) + '</b><button class="btn ghost sm" style="margin-top:6px" onclick="regenPin(' + jsq(sid) + ')">↻ 重设 PIN</button></div>'
+    + '<div class="grid2">' + f("name", "学生姓名") + "<div><label>班</label>" + classSelect("e_class", s.level, s.class_id || "").replace("<select ", '<select onchange="saveStudentField(' + jsq(sid) + ",'class_id',this.value)\" ") + "</div>"
+    + f("grade", "年级") + f("school", "学校") + f("parent", "家长姓名") + f("phone", "家长电话")
+    + f("join_date", "加入日期", "date") + f("start_date", "开课日期（自动算，可以改）", "date") + "</div>"
+    + (wa ? '<div style="margin-top:8px"><a class="btn wa sm" href="https://wa.me/' + esc(wa) + '" target="_blank" rel="noopener">💬 WhatsApp 家长</a></div>' : "")
+    + '<label>备注</label><input value="' + esc(s.note || "") + '" onchange="saveStudentField(' + jsq(sid) + ",'note',this.value)\">"
+    + '<div class="muted" style="margin-top:8px">改了会自动保存。家长姓名、电话只有老师看得到。</div>'
+    + '<div class="acts"><button class="btn red" onclick="deleteStudent(' + jsq(sid) + ')">🗑 删除这个学生</button></div>', function () { pageTracker(); });
+}
+async function saveStudentField(sid, field, value) {
+  var s = findStudent(sid), patch = {};
+  value = field === "name" ? cleanName(value) : String(value || "").trim();
+  if (field === "name" && !value) { alertBox("名字不能空白"); return; }
+  if (field === "class_id" || field === "join_date" || field === "start_date") patch[field] = value || null; else patch[field] = value;
+  if (field === "join_date") { patch.start_date = firstSat(value) || null; var sd = $("e_start_date"); if (sd) sd.value = patch.start_date || ""; }
+  setSaving("● 保存中…");
+  var r = await sb.from("students").update(patch).eq("id", sid);
+  if (r.error) { setSaving("❌ 没存到"); alertBox(friendlyDbError(r.error)); return; }
+  Object.keys(patch).forEach(function (k) { s[k] = patch[k]; });
+  setSaving("● 已保存 " + nowHM());
+}
+async function regenPin(sid) {
+  var s = findStudent(sid);
+  if (!await ask({ title: "重设 PIN？", text: "重设 " + s.name + " 的 PIN？旧的 PIN 就不能用了。", yes: "↻ 重设" })) return;
+  var r = await sb.rpc("regen_pin", { p_student: sid });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  s.pin = r.data; var el = $("pinShow"); if (el) el.textContent = r.data; toast("新 PIN：" + r.data);
+}
+async function deleteStudent(sid) {
+  var s = findStudent(sid);
+  if (!await askClear(["要删除学生：", "· " + s.name + "（" + s.level + "）", "", "他整年的出席、完成度、总结会一起删（备份里还有）。"])) return;
+  var r = await sb.from("students").delete().eq("id", sid);
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  closeSheets(); await refreshTeacher(true); toast("🗑 删掉了");
+}
+
+/* ---------- 完成度 + 出席 ---------- */
+function setWeek(w) { UI.week = w; pageTracker(); }
+function progressHTML(c) {
+  var list = studentsOf(c), wk = UI.week;
+  var chs = challengesOf(c.level, wk);
+  var st = { present: 0, done: 0 };
+  list.forEach(function (s) { var p = cellOf(s.id, wk); if (isPresent(p.attend)) st.present++; if (completeRank(p.complete) >= 1) st.done++; });
+  var h = '<div class="card"><div class="row"><label style="margin:0">看哪一周</label><select style="width:auto;min-width:240px;flex:1" onchange="setWeek(this.value)">' + weekOptions(c.level, wk) + "</select>"
+    + '<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox"' + (UI.onlyTodo ? " checked" : "") + ' onchange="UI.onlyTodo=this.checked;pageTracker()"> 只看未完成</label></div>'
+    + '<div style="margin-top:10px"><span class="wk mono" style="color:var(--accent);font-weight:800">' + esc(wk) + "</span> " + esc(topicOf(c.level, wk)) + "</div>"
+    + (chs.length ? '<div class="muted">' + chs.map(function (x, i) { return "★ 挑战 " + (i + 1) + "：" + esc(x); }).join("<br>") + "</div>" : "")
+    + '<div class="tiles"><div class="tile"><small>出席</small><b><span data-count="' + st.present + '">0</span>/' + list.length + '</b></div><div class="tile"><small>完成（基础以上）</small><b><span data-count="' + st.done + '">0</span>/' + list.length + "</b></div></div></div>";
+  if (!list.length) return h + '<div class="card"><div class="empty">这个班还没有学生，先去「学生名单」加。</div></div>';
+  h += '<div class="grid">';
+  list.forEach(function (s, i) {
+    var p = cellOf(s.id, wk);
+    if (UI.onlyTodo && completeRank(p.complete) >= 1) return;
+    var sid = jsq(s.id);
+    var opts = ["未完成"].concat(TASKS.map(function (t) { return t + " ✓"; }));
+    h += '<div class="stu" style="animation-delay:' + Math.min(i * 25, 400) + 'ms"><div class="row"><span class="nm" onclick="openCell(' + sid + ')">' + esc(s.name) + '</span><span class="sp"></span>'
+      + (p.pending ? '<span class="pill warn">🟡 ' + esc(p.pending) + "</span>" : "") + "</div>"
+      + '<div class="att" style="margin-top:8px">' + ATTEND.map(function (a) { return '<button class="' + a[2] + (p.attend === a[0] ? " on" : "") + '" onclick="setAttend(' + sid + ",'" + a[0] + "')\">" + a[1] + "</button>"; }).join("") + "</div>"
+      + '<div class="row" style="margin-top:8px;gap:8px"><select style="flex:1" onchange="saveComplete(' + sid + ',this.value)">' + opts.map(function (o) { return "<option" + ((p.complete || "未完成") === o ? " selected" : "") + ">" + o + "</option>"; }).join("") + "</select>"
+      + (p.pending ? '<button class="btn green sm" onclick="confirmPending(' + sid + ')">✓ 确认</button>' : "") + "</div>"
+      + '<input style="margin-top:8px" placeholder="卡在哪里（例如：millis 卡住）" value="' + esc(p.stuck || "") + '" onchange="saveCell(' + sid + ",'stuck',this.value)\">"
+      + (p.ai_summary ? '<div class="muted" style="margin-top:6px;white-space:pre-wrap">' + esc(p.ai_summary.slice(0, 90)) + (p.ai_summary.length > 90 ? "…" : "") + "</div>" : "")
+      + '<div class="row" style="margin-top:8px;gap:6px"><button class="btn ghost sm" onclick="openCell(' + sid + ')">✏️ 写总结</button><button class="btn wa sm" onclick="whatsapp(' + sid + ')">💬 WhatsApp</button></div></div>';
+  });
+  h += "</div>";
+  h += '<div class="sec">全览 · 每一周</div><div class="scroll"><table><tr><th class="l">学生</th>' + WEEKS.map(function (w) { return "<th>" + w + "</th>"; }).join("") + "</tr>";
+  list.forEach(function (s) {
+    h += '<tr><td class="l">' + esc(s.name) + "</td>";
+    WEEKS.forEach(function (w) {
+      var p = cellOf(s.id, w), rk = completeRank(p.complete);
+      var cls = rk >= 2 ? "c" : (rk === 1 ? "b" : (p.pending ? "p" : (p.attend === "缺" ? "x" : "")));
+      var mark = p.complete === "挑战 ✓" ? "挑战" : (rk ? (rk === 1 ? "基" : (rk === 2 ? "挑1" : "挑2")) : (p.pending ? "待" : (p.attend === "缺" ? "缺" : (isPresent(p.attend) ? "到" : "·"))));
+      h += '<td><span class="m ' + cls + '">' + mark + "</span></td>";
+    });
+    h += "</tr>";
+  });
+  return h + '</table></div><div class="muted" style="margin-top:6px">基 = 基础 ✓ · 挑1 / 挑2 = 挑战 ✓ · 待 = 待检查 · 到 = 有出席还没完成 · 缺 = 缺席</div>';
+}
+async function saveCell(sid, field, value, week) {
+  week = week || UI.week;
+  var s = findStudent(sid), cell = cellOf(sid, week);
+  var row = { student_id: sid, week: week };
+  row[field] = value;
+  if (!cell.class_id && s.class_id) row.class_id = s.class_id;
+  if (!cell.date) { var c = findClass(s.class_id); row.date = (c && (c.sessions || {})[week]) || todayMYT(); }
+  setSaving("● 保存中…");
+  var r = await sb.from("progress").upsert(row, { onConflict: "student_id,week" }).select().single();
+  if (r.error) { setSaving("❌ 没存到"); alertBox(friendlyDbError(r.error)); return false; }
+  (T.progress[sid] = T.progress[sid] || {})[week] = r.data;
+  setSaving("● 已保存 " + nowHM());
+  return true;
+}
+async function setAttend(sid, value) {
+  var cur = cellOf(sid, UI.week).attend || "";
+  if (await saveCell(sid, "attend", cur === value ? "" : value)) pageTracker();
+}
+async function saveComplete(sid, value) {
+  var p = cellOf(sid, UI.week);
+  var row = { complete: value };
+  if (p.pending && completeRank(value) >= pendingRank(p.pending)) row.pending = "";
+  var ok = await saveCell(sid, "complete", value);
+  if (ok && row.pending === "") await saveCell(sid, "pending", "");
+  if (ok) pageTracker();
+}
+async function confirmPending(sid) {
+  var p = cellOf(sid, UI.week); var rk = pendingRank(p.pending);
+  if (!rk) return;
+  if (await saveCell(sid, "complete", TASKS[rk - 1] + " ✓") && await saveCell(sid, "pending", "")) { toast("✅ 确认了"); pageTracker(); }
+}
+function openCell(sid) {
+  var s = findStudent(sid), c = findClass(s.class_id), p = cellOf(sid, UI.week);
+  openSheet("<h2>✏️ " + esc(s.name) + ' · <span class="mono">' + esc(UI.week) + "</span></h2>"
+    + '<div class="muted">' + esc(topicOf(s.level, UI.week)) + "</div>"
+    + "<label>总结（给家长看的）</label><textarea id=\"dSum\">" + esc(p.ai_summary || "") + "</textarea>"
+    + "<label>老师备注（只有你看得到，学生和家长看不到）</label><textarea id=\"dNote\">" + esc(p.teacher_note || "") + "</textarea>"
+    + '<label>卡在哪里</label><input id="dStuck" value="' + esc(p.stuck || "") + '">'
+    + '<div class="acts"><button class="btn" onclick="saveDetail(' + jsq(sid) + ')">💾 保存</button><button class="btn wa" onclick="whatsapp(' + jsq(sid) + ')">💬 WhatsApp 给家长</button></div>', function () { pageTracker(); });
+}
+async function saveDetail(sid) {
+  var p = cellOf(sid, UI.week), ok = true;
+  var a = $("dSum").value, b = $("dNote").value, c = $("dStuck").value;
+  if (a !== (p.ai_summary || "")) ok = ok && await saveCell(sid, "ai_summary", a);
+  if (b !== (p.teacher_note || "")) ok = ok && await saveCell(sid, "teacher_note", b);
+  if (c !== (p.stuck || "")) ok = ok && await saveCell(sid, "stuck", c);
+  if (ok) { toast("✅ 已保存"); closeSheets(); }
+}
+function whatsapp(sid) {
+  var s = findStudent(sid);
+  var num = waNumber(s.phone);
+  if (!num) { alertBox("这个学生没有家长电话，先去「学生名单」填。"); return; }
+  var p = cellOf(sid, UI.week);
+  var sumEl = $("dSum"); var summary = (sumEl ? sumEl.value : (p.ai_summary || "")).trim();
+  var att = isPresent(p.attend) ? "有出席" : (p.attend === "缺" ? "缺席" : "（未记录）");
+  var lines = ["您好，我是自动工程实作课的" + (CFG.TEACHER_NAME || "老师") + "。", s.name + " 在 " + s.level + " " + UI.week + "（" + topicOf(s.level, UI.week) + "）的情况：", "出席：" + att + " · 完成度：" + (p.complete || "未完成")];
+  lines.push(summary ? "总结：" + summary : "总结：这周的总结还没写好，晚点再发给您。");
+  lines.push("谢谢！");
+  window.open("https://wa.me/" + num + "?text=" + encodeURIComponent(lines.join("\n")), "_blank", "noopener");
+}
+
+/* ---------- 今天的状况（每班每周） ---------- */
+function todayHTML(c) {
+  var notes = T.notes[c.id] || {}, sess = c.sessions || {};
+  var ip = infoPair("课后 2 分钟：谁卡在哪、器材坏了／少了什么、下一堂要注意什么、照片拍了没。日期自动用开始上课那天。");
+  var h = '<div class="row" style="margin-top:10px"><b>' + esc(c.name) + "</b> 的纪录 " + ip.btn + "</div>" + ip.box;
+  WEEKS.forEach(function (w) {
+    var n = notes[w] || {}, has = n.stuck || n.equipment || n.next || n.photo;
+    var open = w === (c.week || "W1");
+    var a = jsq(w), cid = jsq(c.id);
+    h += '<details class="box"' + (open ? " open" : "") + "><summary><span class=\"mono\" style=\"color:var(--accent)\">" + w + '</span><span class="sub" style="font-weight:600">' + esc(topicOf(c.level, w)) + "</span>"
+      + (sess[w] ? '<span class="pill">' + esc(sess[w]) + "</span>" : "") + (has ? '<span class="pill ok">有写</span>' : "") + '</summary><div class="in">'
+      + (sess[w] ? "" : '<label>日期</label><input type="date" value="' + esc(n.date || "") + '" onchange="saveNote(' + cid + "," + a + ",'date',this.value)\">")
+      + "<label>谁卡在哪、卡在什么</label><textarea onchange=\"saveNote(" + cid + "," + a + ",'stuck',this.value)\">" + esc(n.stuck || "") + "</textarea>"
+      + "<label>器材坏了／少了什么</label><textarea onchange=\"saveNote(" + cid + "," + a + ",'equipment',this.value)\">" + esc(n.equipment || "") + "</textarea>"
+      + "<label>下一堂要注意</label><textarea onchange=\"saveNote(" + cid + "," + a + ",'next',this.value)\">" + esc(n.next || "") + "</textarea>"
+      + "<label>拍照了吗</label><select onchange=\"saveNote(" + cid + "," + a + ",'photo',this.value)\"><option value=\"\">-</option><option" + (n.photo === "已拍" ? " selected" : "") + ">已拍</option><option" + (n.photo === "未拍" ? " selected" : "") + ">未拍</option></select>"
+      + "</div></details>";
+  });
+  return h;
+}
+async function saveNote(cid, week, field, value) {
+  var c = findClass(cid), cur = (T.notes[cid] || {})[week] || {};
+  var row = { class_id: cid, week: week }; row[field] = field === "date" ? (value || null) : value;
+  if (!cur.date && field !== "date") row.date = (c.sessions || {})[week] || todayMYT();
+  setSaving("● 保存中…");
+  var r = await sb.from("class_notes").upsert(row, { onConflict: "class_id,week" }).select().single();
+  if (r.error) { setSaving("❌ 没存到"); alertBox(friendlyDbError(r.error)); return; }
+  (T.notes[cid] = T.notes[cid] || {})[week] = r.data;
+  setSaving("● 已保存 " + nowHM());
+}
+
+/* ---------- 导出 Excel（跟 Server.py 一样的格式） ---------- */
+function loadScript(src) {
+  return new Promise(function (ok, bad) {
+    if (document.querySelector('script[src="' + src + '"]')) { ok(); return; }
+    var s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = function () { bad(new Error("载入不到 " + src)); };
+    document.head.appendChild(s);
+  });
+}
+async function exportExcel() {
+  try {
+    toast("准备 Excel…");
+    await loadScript("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js");
+    var names = {}; T.classes.forEach(function (c) { names[c.id] = c.name; });
+    var overview = [["Level", "班", "学生姓名", "年级", "学校", "家长姓名", "家长电话", "学生 PIN", "开课日期", "有记录的周数", "出席次数", "完成次数（基础/挑战）", "最新总结"]];
+    var wb = window.XLSX.utils.book_new(), sheets = [];
+    LEVELS.forEach(function (level) {
+      var rows = [["学生姓名", "班", "Level", "Week", "日期", "主题", "出席", "完成度", "待检查", "卡在哪里", "总结（给家长）", "老师备注"]];
+      T.students.filter(function (s) { return s.level === level; }).forEach(function (s) {
+        var cn = names[s.class_id] || "（未绑班）", wk = 0, att = 0, done = 0, latest = "";
+        WEEKS.forEach(function (w) {
+          var p = cellOf(s.id, w);
+          if (p.attend || p.complete || p.pending || p.ai_summary || p.stuck || p.teacher_note) {
+            wk++; if (isPresent(p.attend)) att++; if (completeRank(p.complete) >= 1) done++; if (p.ai_summary) latest = p.ai_summary;
+            rows.push([s.name, names[p.class_id] || cn, level, w, p.date || "", topicOf(level, w), p.attend || "", p.complete || "", p.pending || "", p.stuck || "", p.ai_summary || "", p.teacher_note || ""]);
+          }
+        });
+        overview.push([level, cn, s.name, s.grade, s.school, s.parent, s.phone, s.pin, s.start_date || "", wk, att, done, latest]);
+      });
+      sheets.push([level, rows]);
+    });
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(overview), "总览");
+    sheets.forEach(function (x) { window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(x[1]), x[0]); });
+    window.XLSX.writeFile(wb, "自动工程实作课_进度_" + todayMYT() + ".xlsx");
+  } catch (e) { alertBox("导出失败：" + errText(e)); }
+}
+
+/* =================================================================
+   老师页 3：文件
+   ================================================================= */
+function fileTargetName(f) {
+  if (f.class_id) { var c = findClass(f.class_id); return c ? c.name + "（" + c.level + "）" : "（已删的班）"; }
+  if (f.class_code) return "（已删的班 · Code " + f.class_code + "）";
+  return "📢 全部 " + f.level + " 班";
+}
+function targetLevel(v) { if (!v) return ""; if (v.indexOf("level:") === 0) return v.slice(6); var c = findClass(v.slice(6)); return c ? c.level : ""; }
+function pageFiles() {
+  var app = $("app");
+  var used = T.files.reduce(function (a, f) { return a + (Number(f.size) || 0); }, 0);
+  var pct = Math.min(100, used * 100 / STORAGE_LIMIT);
+  var opts = "", levels = [];
+  classesByNow().forEach(function (c) { if (c.archived) return; opts += '<option value="class:' + esc(c.id) + '">' + esc(c.name) + "（" + esc(c.level) + "）</option>"; if (levels.indexOf(c.level) < 0) levels.push(c.level); });
+  levels.forEach(function (l) { opts += '<option value="level:' + esc(l) + '">📢 全部 ' + esc(l) + " 班</option>"; });
+  if (!opts) opts = '<option value="">（先开一个班）</option>';
+  var ip = infoPair("选发给哪个班（或某个 Level 的全部班）、第几周。学生登入后在「文件」看得到他们班<b>整年</b>所有周的文件。<br>同一个班、同一周、同一个文件名再发一次，会换成新的。单个文件最多 30 MB。");
+  var h = '<div class="row" style="margin-top:6px"><h1>📤 发文件</h1>' + ip.btn + "</div>" + ip.box
+    + '<div class="card"><div class="grid2"><div><label>发给哪个班</label><select id="fTarget" onchange="UI.filesTarget=this.value;fillFileWeeks()">' + opts + "</select></div>"
+    + '<div><label>第几周</label><select id="fWeek" onchange="UI.filesWeek=this.value"></select></div>'
+    + '<div><label>文件名（例如 W05_FL.ino）</label><input id="fName"></div><div><label>说明（可选）</label><input id="fDesc" placeholder="例如：今天的范例程序"></div></div>'
+    + '<div class="seg" style="margin-top:12px"><button class="' + (UI.filesMode === "code" ? "on" : "") + '" onclick="UI.filesMode=\'code\';pageFiles()">📋 贴 Code</button><button class="' + (UI.filesMode === "file" ? "on" : "") + '" onclick="UI.filesMode=\'file\';pageFiles()">📎 上传文件</button></div>'
+    + (UI.filesMode === "code" ? '<label>Code（会存成 .ino）</label><textarea class="code" id="fCode" placeholder="把要给学生的 code 贴在这里"></textarea><button class="btn" style="margin-top:10px" onclick="publishCode()">📤 发这份 Code</button>'
+      : '<label>选文件（PDF / ZIP / 图片 / .ino / PPT…）</label><input type="file" id="fFile"><button class="btn" style="margin-top:10px" onclick="uploadFile()">📤 上传</button>')
+    + '<div id="fMsg"></div></div>'
+    + '<div class="card"><div class="row"><b>空间</b><span class="sp"></span><span class="mono muted">' + sizeText(used) + " / 1 GB</span></div><div class=\"bar\" style=\"margin-top:8px\"><i style=\"width:" + pct.toFixed(1) + '%"></i></div></div>';
+  var groups = {}, order = [];
+  T.files.slice().sort(function (a, b) { var wa = a.week ? weekNum(a.week) : 0, wb = b.week ? weekNum(b.week) : 0; return wb - wa || String(b.created_at).localeCompare(String(a.created_at)); })
+    .forEach(function (f) { var k = fileTargetName(f); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(f); });
+  if (!order.length) h += '<div class="card"><div class="empty">还没发过文件。</div></div>';
+  order.forEach(function (k) {
+    h += '<div class="sec">' + esc(k) + "</div>";
+    groups[k].forEach(function (f) {
+      h += '<div class="file"><span class="fi">' + fileIcon(f.filename) + '</span><div class="sp"><div class="fn">' + esc(f.filename) + '</div><div class="muted">' + esc(f.week || "通用") + (f.description ? " · " + esc(f.description) : "") + " · " + esc(fmtTime(f.updated_at || f.created_at)) + " · " + sizeText(f.size) + "</div></div>"
+        + '<button class="btn ghost sm" onclick="downloadFile(' + jsq(f.id) + ')">⬇</button><button class="btn red sm" onclick="deleteFile(' + jsq(f.id) + ')">🗑</button></div>';
+    });
+  });
+  app.innerHTML = h;
+  var sel = $("fTarget");
+  if (UI.filesTarget && Array.prototype.some.call(sel.options, function (o) { return o.value === UI.filesTarget; })) sel.value = UI.filesTarget;
+  UI.filesTarget = sel.value;
+  fillFileWeeks();
+}
+function fillFileWeeks() {
+  var v = $("fTarget").value, lvl = targetLevel(v), c = v.indexOf("class:") === 0 ? findClass(v.slice(6)) : null;
+  var wk = UI.filesWeek;
+  if (wk === "" || wk == null) { wk = c ? c.week : ""; if (!c && lvl) T.classes.forEach(function (x) { if (!wk && x.level === lvl && x.open) wk = x.week; }); }
+  $("fWeek").innerHTML = weekOptions(lvl, wk, true);
+}
+function fileIcon(n) {
+  var e = String(n).split(".").pop().toLowerCase();
+  return { ino: "🧩", pdf: "📕", zip: "🗜", ppt: "📊", pptx: "📊", png: "🖼", jpg: "🖼", jpeg: "🖼", gif: "🖼", xlsx: "📗", xls: "📗", doc: "📘", docx: "📘", mp4: "🎬" }[e] || "📄";
+}
+function cleanFilename(n) { return String(n || "").replace(/\\/g, "/").split("/").pop().replace(/[\\/:*?"<>|\x00-\x1f]+/g, "_").trim().replace(/^\.+|\.+$/g, "").slice(0, 120); }
+async function storeFile(blob, filename) {
+  var target = $("fTarget").value, week = $("fWeek").value, desc = $("fDesc").value.trim();
+  if (!target) { alertBox("先开一个班。"); return false; }
+  filename = cleanFilename(filename);
+  if (!filename) { alertBox("文件名不对"); return false; }
+  if (blob.size > MAX_FILE) { alertBox("文件超过 30 MB，太大了。"); return false; }
+  var cls = target.indexOf("class:") === 0 ? findClass(target.slice(6)) : null, lvl = targetLevel(target);
+  var old = T.files.filter(function (f) {
+    return f.filename === filename && (f.week || "") === week && (cls ? f.class_id === cls.id : (!f.class_id && !f.class_code && f.level === lvl));
+  });
+  $("fMsg").innerHTML = '<div class="muted" style="margin-top:8px">上传中… ' + esc(filename) + "</div>";
+  var path = "f/" + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "_" + Math.random().toString(36).slice(2));
+  var up = await sb.storage.from(BUCKET).upload(path, blob, { contentType: blob.type || "application/octet-stream", upsert: false });
+  if (up.error) { $("fMsg").innerHTML = ""; alertBox("上传失败：" + friendlyDbError(up.error)); return false; }
+  var row = { filename: filename, stored: path, class_id: cls ? cls.id : null, class_code: cls ? cls.code : null, level: lvl, week: week, description: desc, size: blob.size };
+  var r = await sb.from("teacher_files").insert(row).select().single();
+  if (r.error) { await sb.storage.from(BUCKET).remove([path]); $("fMsg").innerHTML = ""; alertBox(friendlyDbError(r.error)); return false; }
+  for (var i = 0; i < old.length; i++) {
+    await sb.storage.from(BUCKET).remove([old[i].stored]);
+    await sb.from("teacher_files").delete().eq("id", old[i].id);
+  }
+  var oldIds = old.map(function (f) { return f.id; });
+  T.files = T.files.filter(function (f) { return oldIds.indexOf(f.id) < 0; });
+  T.files.unshift(r.data);
+  UI.filesWeek = week;
+  pageFiles();
+  $("fMsg").innerHTML = '<div class="okbox">✅ ' + (old.length ? "更新了" : "发好了") + "：" + esc(filename) + " → " + esc(fileTargetName(r.data)) + "</div>";
+  return true;
+}
+async function publishCode() {
+  var fn = $("fName").value.trim(), code = $("fCode").value;
+  if (!fn) { alertBox("先填文件名，例如 W05_FL.ino"); return; }
+  if (!/\.[A-Za-z0-9]+$/.test(fn)) fn += ".ino";
+  if (!code.trim()) { alertBox("Code 是空的。"); return; }
+  await storeFile(new Blob([code], { type: "text/plain;charset=utf-8" }), fn);
+}
+async function uploadFile() {
+  var inp = $("fFile"); if (!inp.files.length) { alertBox("先选一个文件"); return; }
+  var file = inp.files[0];
+  await storeFile(file, $("fName").value.trim() || file.name);
+}
+async function downloadFile(id, list) {
+  var f = (list || (T && T.files) || []).filter(function (x) { return x.id === id; })[0];
+  if (!f) return;
+  var r = await sb.storage.from(BUCKET).createSignedUrl(f.stored, 120, { download: f.filename });
+  if (r.error) { alertBox(LANG === "en" && ME && ME.role === "student" ? "Cannot download this file." : "下载不到：" + friendlyDbError(r.error)); return; }
+  var a = document.createElement("a"); a.href = r.data.signedUrl; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove();
+}
+async function deleteFile(id) {
+  var f = T.files.filter(function (x) { return x.id === id; })[0]; if (!f) return;
+  if (!await ask({ title: "删掉文件？", text: "删掉 " + f.filename + "？学生就下载不到了。", yes: "🗑 删掉", danger: true })) return;
+  var a = await sb.storage.from(BUCKET).remove([f.stored]);
+  var b = await sb.from("teacher_files").delete().eq("id", id);
+  if (b.error) { alertBox(friendlyDbError(b.error)); return; }
+  T.files = T.files.filter(function (x) { return x.id !== id; });
+  toast("🗑 删掉了"); pageFiles();
+}
+
+/* =================================================================
+   老师页 4：设定（备份、推播、课程资料、账号）
+   ================================================================= */
+async function pageSettings() {
+  var app = $("app");
+  app.innerHTML = '<div class="row" style="margin-top:6px"><h1>⚙️ 设定</h1></div><div class="loading"><i></i><i></i><i></i></div>';
+  if (CFG.GOOGLE_CLIENT_ID) loadScript("https://accounts.google.com/gsi/client").catch(function () {});
+  var st = (await sb.rpc("backup_status")).data || {};
+  var sess = (await sb.auth.getSession()).data.session;
+  var pushOn = false, pushOk = "serviceWorker" in navigator && "PushManager" in window;
+  if (pushOk) { try { var reg = await navigator.serviceWorker.ready; pushOn = !!(await reg.pushManager.getSubscription()); } catch (e) {} }
+  var ipB = infoPair("资料一有改动，最多 1 分钟就自动备份到 Google Drive 的「自动工程实作课_云端备份」文件夹：<br>· <b>latest.json</b>：永远是最新的一份<br>· <b>daily_日期.json</b>：每天一份，留 60 天<br>网页关着也会备份（是 Supabase 自己每分钟检查）。老师的文件本身不备份（原档在你那边）。");
+  var ipP = infoPair("6 天没有登入老师页，就推播提醒你（早上 9 点到晚上 9 点，一天最多一次），免得 Supabase 闲置 7 天被暂停。<br>另外 GitHub 每 3 天也会自动碰一下 Supabase。<br><b>iPhone</b>：要先用 Safari「分享 → 加到主画面」，从主画面打开这个 app，才开得了推播。");
+  var ipC = infoPair("课程表（每周主题、挑战）来自 repo 里的 <b>course.json</b>，跟 Server.py 的 Course/course.json 是同一份。要更新就把新的 course.json 上传到 GitHub 覆盖。");
+  var weeksListed = COURSE ? LEVELS.map(function (l) { return l + " " + (((COURSE.curriculum || {})[l] || {}).w || []).length + " 周"; }).join(" · ") : "";
+  var h = '<div class="row" style="margin-top:6px"><h1>⚙️ 设定</h1></div>'
+    + '<div class="card' + (st.connected ? "" : " glow") + '"><h2>💾 Google Drive 备份 ' + ipB.btn + "</h2>" + ipB.box
+    + (st.connected ? '<div class="okbox">✅ 已连接' + (st.email ? "：" + esc(st.email) : "") + "</div>" : '<div class="err">还没连接 · 现在没有自动备份</div>')
+    + '<div class="tiles"><div class="tile"><small>最后备份</small><b style="font-size:16px">' + esc(st.last_at ? fmtTime(st.last_at) : "—") + "</b></div><div class=\"tile\"><small>最后检查</small><b style=\"font-size:16px\">" + esc(st.last_try ? fmtTime(st.last_try) : "—") + "</b></div></div>"
+    + (st.last_error ? '<div class="err">⚠ ' + esc(st.last_error) + "</div>" : "")
+    + '<div class="acts">' + (CFG.GOOGLE_CLIENT_ID ? '<button class="btn" onclick="connectDrive()">' + (st.connected ? "↻ 重新连接" : "🔗 连接 Google Drive") + "</button>" : '<div class="err">config.js 还没填 GOOGLE_CLIENT_ID（设定步骤第 5 步）</div>')
+    + (st.connected ? '<button class="btn ghost" onclick="backupNow(this)">💾 马上备份</button><button class="btn ghost" onclick="disconnectDrive()">断开</button>' : "") + "</div>"
+    + '<div class="muted" style="margin-top:8px">连接时请选 <b>IoT 课程的 Google 账号</b>。</div></div>'
+    + '<div class="card"><h2>🔔 6 天没登入提醒 ' + ipP.btn + "</h2>" + ipP.box
+    + (!pushOk ? '<div class="err">这个浏览器不支援推播（iPhone 要先加到主画面）。</div>'
+      : (pushOn ? '<div class="okbox">✅ 这台装置开了推播</div><div class="acts"><button class="btn ghost" onclick="testPush(this)">📨 测试推播</button><button class="btn ghost" onclick="pushOff()">关掉这台的推播</button></div>'
+        : '<div class="acts"><button class="btn" onclick="pushOnFn()">🔔 这台装置开推播</button></div>'))
+    + "</div>"
+    + '<div class="card"><h2>📘 课程资料 ' + ipC.btn + "</h2>" + ipC.box
+    + (COURSE ? '<div class="okbox">✅ course.json 读到了</div><div class="muted" style="margin-top:6px">' + esc(weeksListed) + "</div>" : '<div class="err">读不到 course.json → 把 Server.py 旁边 Course 文件夹里的 course.json 上传到 GitHub repo 的最外层。</div>')
+    + "</div>"
+    + '<div class="card"><h2>👤 老师账号</h2><div class="sub">' + esc(sess && sess.user ? sess.user.email : "") + '</div><div class="acts"><button class="btn red" onclick="teacherLogout()">退出登入</button></div>'
+    + '<div class="muted" style="margin-top:12px">版本：' + esc(CFG.VERSION || "") + "</div></div>";
+  app.innerHTML = h;
+}
+async function teacherLogout() { if (await ask({ title: "退出登入？", yes: "退出" })) logout(); }
+function connectDrive() {
+  if (!window.google || !google.accounts || !google.accounts.oauth2) { alertBox("Google 的登入工具还没载入好，等两秒再按一次。"); loadScript("https://accounts.google.com/gsi/client").catch(function () {}); return; }
+  var client = google.accounts.oauth2.initCodeClient({
+    client_id: CFG.GOOGLE_CLIENT_ID,
+    scope: "https://www.googleapis.com/auth/drive.file",
+    ux_mode: "popup",
+    callback: async function (resp) {
+      if (!resp || !resp.code) { alertBox("没有连接成功：" + ((resp && resp.error) || "取消了")); return; }
+      toast("连接中…");
+      var j = await callFn("tasks", { action: "connect", code: resp.code });
+      if (!j.ok) { alertBox("连接失败：" + (j.error || "")); return; }
+      toast("✅ 连接好了" + (j.backup && j.backup.ok ? "，也备份了一次" : ""));
+      pageSettings();
+    }
+  });
+  client.requestCode();
+}
+async function backupNow(btn) {
+  btn.disabled = true;
+  var j = await callFn("tasks", { action: "backup-now" });
+  btn.disabled = false;
+  if (!j.ok || (j.backup && j.backup.ok === false)) { alertBox("备份失败：" + (j.error || (j.backup && j.backup.error) || "")); }
+  else toast("✅ 备份好了");
+  pageSettings();
+}
+async function disconnectDrive() {
+  if (!await ask({ title: "断开 Google Drive？", text: "断开后就不会自动备份了。Drive 里已经备份的文件不会删。", yes: "断开", danger: true })) return;
+  await callFn("tasks", { action: "disconnect" }); pageSettings();
+}
+function urlB64ToUint8(b64) {
+  var pad = "=".repeat((4 - b64.length % 4) % 4), raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  var out = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i); return out;
+}
+async function pushOnFn() {
+  try {
+    var perm = await Notification.requestPermission();
+    if (perm !== "granted") { alertBox("你没有允许通知。要在浏览器设定里打开这个网站的通知。"); return; }
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(CFG.VAPID_PUBLIC_KEY) });
+    var j = sub.toJSON();
+    var r = await sb.from("push_subs").upsert({ endpoint: j.endpoint, sub: j }, { onConflict: "endpoint" });
+    if (r.error) throw r.error;
+    toast("✅ 推播开好了"); pageSettings();
+  } catch (e) { alertBox("开不了推播：" + errText(e)); }
+}
+async function pushOff() {
+  try {
+    var reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    if (sub) { await sb.from("push_subs").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+    pageSettings();
+  } catch (e) { alertBox(errText(e)); }
+}
+async function testPush(btn) {
+  btn.disabled = true;
+  var j = await callFn("tasks", { action: "test-push" });
+  btn.disabled = false;
+  if (!j.ok) alertBox("测试失败：" + (j.error || "")); else toast("📨 送出了，等几秒看通知");
+}
+
+var TEACHER_PAGES = { classes: pageClasses, tracker: pageTracker, files: pageFiles, settings: pageSettings };
+
+/* =================================================================
+   学生页
+   ================================================================= */
+async function loadStudent() {
+  var r = await Promise.all([sb.rpc("my_progress"), sb.rpc("my_files")]);
+  S = { progress: {}, files: [] };
+  if (!r[0].error) (r[0].data || []).forEach(function (p) { S.progress[p.week] = p; });
+  if (!r[1].error) S.files = r[1].data || [];
+}
+function whoHTML() {
+  return '<div class="who"><span style="font-size:24px">🧑‍🔧</span><div><div class="muted">' + esc(tx("you_are")) + "</div><b>" + esc(ME.name) + '</b> <span class="lvl">' + esc(ME.level) + '</span><div class="muted">' + esc(ME.class_name || tx("no_class")) + '</div></div><span class="sp"></span><button class="btn ghost sm" onclick="studentLogoutAsk()">' + esc(tx("not_me")) + "</button></div>";
+}
+function attLabel(a) { return { "✓": tx("att_ok"), "迟": tx("att_late"), "补": tx("att_make"), "缺": tx("att_abs") }[a] || tx("att_none"); }
+function stuProgress() {
+  var rows = WEEKS.filter(function (w) { var p = S.progress[w]; return p && (p.attend || p.complete || p.pending || p.summary); });
+  var att = 0, done = 0;
+  rows.forEach(function (w) { var p = S.progress[w]; if (isPresent(p.attend)) att++; if (completeRank(p.complete) >= 1) done++; });
+  var h = whoHTML() + "<h1>📊 " + esc(tx("my_progress")) + "</h1>"
+    + '<div class="tiles"><div class="tile"><small>' + esc(tx("attended")) + '</small><b data-count="' + att + '">0</b></div><div class="tile"><small>' + esc(tx("done")) + '</small><b data-count="' + done + '">0</b></div><div class="tile"><small>' + esc(tx("weeks_rec")) + '</small><b data-count="' + rows.length + '">0</b></div></div>';
+  if (!rows.length) h += '<div class="card"><div class="empty">' + esc(tx("no_rec")) + "</div></div>";
+  rows.slice().reverse().forEach(function (w, i) {
+    var p = S.progress[w], rk = completeRank(p.complete);
+    var cp = rk ? '<span class="pill ok">' + esc(p.complete) + "</span>" : '<span class="pill">' + esc(tx("not_done")) + "</span>";
+    var ap = '<span class="pill ' + (isPresent(p.attend) ? "acc" : (p.attend === "缺" ? "bad" : "")) + '">' + esc(attLabel(p.attend)) + "</span>";
+    h += '<div class="card" style="animation-delay:' + Math.min(i * 40, 400) + 'ms"><div class="row"><span class="mono" style="color:var(--accent);font-weight:800;font-size:17px">' + w + '</span><span class="sub" style="flex:1">' + esc(topicOf(ME.level, w)) + "</span></div>"
+      + '<div class="row" style="margin-top:8px;gap:6px">' + ap + cp + (p.pending ? '<span class="pill warn">🟡 ' + esc(tx("waiting")) + "</span>" : "") + "</div>"
+      + (p.summary ? '<details class="box" style="margin-top:10px"><summary>💬 ' + esc(tx("summary")) + '</summary><div class="in" style="white-space:pre-wrap">' + esc(p.summary) + "</div></details>" : "") + "</div>";
+  });
+  $("app").innerHTML = h;
+  countUp($("app"));
+}
+function stuFiles() {
+  var list = S.files.slice().sort(function (a, b) { var wa = a.week ? weekNum(a.week) : 0, wb = b.week ? weekNum(b.week) : 0; return wb - wa || String(b.created_at).localeCompare(String(a.created_at)); });
+  var h = whoHTML() + "<h1>📥 " + esc(tx("files")) + "</h1>";
+  if (!list.length) h += '<div class="card"><div class="empty">' + esc(tx("no_files")) + "</div></div>";
+  var last = null;
+  list.forEach(function (f) {
+    var wk = f.week || "";
+    if (wk !== last) { h += '<div class="sec">' + esc(wk ? wk + " · " + topicOf(ME.level, wk) : tx("general")) + "</div>"; last = wk; }
+    h += '<div class="file"><span class="fi">' + fileIcon(f.filename) + '</span><div class="sp"><div class="fn">' + esc(f.filename) + '</div><div class="muted">' + (f.description ? esc(f.description) + " · " : "") + (f.for_all ? esc(tx("for_all")) + " · " : "") + esc(fmtTime(f.created_at).slice(0, 10)) + "</div></div>"
+      + '<button class="btn sm" onclick="downloadFile(' + jsq(f.id) + ',S.files)">⬇ ' + esc(tx("download")) + "</button></div>";
+  });
+  $("app").innerHTML = h;
+}
+var STUDENT_PAGES = { progress: stuProgress, files: stuFiles };
+
+/* =================================================================
+   启动
+   ================================================================= */
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
+document.documentElement.lang = LANG === "en" ? "en" : "zh";
+sb.auth.onAuthStateChange(function (ev) { if (ev === "SIGNED_OUT" && ME) { ME = null; route(); } });
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState !== "visible" || !ME) return;
+  if (ME.role === "student") { if (idleTooLong()) { logout(tx("idle_out")); return; } loadStudent().then(route); }
+  if (ME.role === "teacher" && T && Date.now() - (T.loadedAt || 0) > 5 * 60 * 1000 && !document.querySelector("#modals .back")) { sb.rpc("teacher_ping"); refreshTeacher(true); }
+});
+(async function () { paintTop(); await loadCourse(); await boot(); })();
+</script>
+</body>
+</html>
