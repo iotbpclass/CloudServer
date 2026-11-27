@@ -91,7 +91,7 @@ input,select,textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 textarea{min-height:90px;resize:vertical}
 textarea.code{font-family:var(--mono);font-size:13px;min-height:180px;white-space:pre}
-input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);vertical-align:middle}
+input[type=checkbox],input[type=radio]{width:20px;height:20px;flex:none;padding:0;accent-color:var(--accent);vertical-align:middle}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:14px;padding:11px 16px;font-weight:800;font-size:14.5px;cursor:pointer;text-decoration:none;background:var(--accent);color:var(--accent-ink);transition:transform .12s,box-shadow .2s}
 .btn:hover{box-shadow:0 0 18px var(--glow)}
 .btn:active{transform:scale(.97)}
@@ -211,6 +211,21 @@ details.box>.in{padding:0 14px 14px}
 .loading i{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:blink 1s infinite alternate}
 .loading i:nth-child(2){animation-delay:.2s}.loading i:nth-child(3){animation-delay:.4s}
 @keyframes blink{from{opacity:.2;transform:scale(.7)}to{opacity:1;transform:none}}
+
+/* ---------- 第 2 阶段 ---------- */
+.pickbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));z-index:40;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;background:var(--panel);border:1px solid var(--accent);border-radius:18px;padding:10px 14px;box-shadow:0 0 26px var(--glow);max-width:94vw}
+pre.codev{background:var(--input);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;font-family:var(--mono);font-size:12.5px;line-height:1.5;overflow:auto;max-height:46vh;white-space:pre;margin:8px 0 0;color:var(--ink)}
+pre.codev.log{max-height:20vh;color:var(--ink2)}
+.paper{background:#fff;color:#0f172a;border-radius:18px;padding:40px 44px;margin:14px 0 30px;box-shadow:var(--shadow)}
+.phead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0e7490;padding-bottom:16px;gap:12px}
+.ptitle{font-size:24px;font-weight:900;letter-spacing:.06em;color:#0e7490}.pmuted{font-size:13px;color:#475569}
+.pinfo{display:grid;grid-template-columns:1fr 1fr;gap:6px 26px;margin:18px 0;font-size:14px}.pinfo b{display:inline-block;min-width:60px;color:#64748b}
+.ptable{width:100%;border-collapse:collapse;font-size:14px}.ptable th{background:#eef4fb;color:#334155;text-align:left;padding:9px 10px;font-family:inherit;position:static}.ptable td{padding:10px;border-bottom:1px solid #e6ebf3;text-align:left;white-space:normal}
+.ptable .r{text-align:right}.pst{font-weight:800;font-size:12.5px;padding:2px 8px;border-radius:999px;white-space:nowrap}.pst.y{background:#dcfce7;color:#166534}.pst.n{background:#fee2e2;color:#991b1b}
+.ptot{margin:16px 0 0 auto;width:290px;font-size:14.5px}.ptot div{display:flex;justify-content:space-between;padding:5px 0}.ptot .big{border-top:2px solid #0f172a;margin-top:4px;padding-top:8px;font-size:18px;font-weight:900}
+.pnote{margin-top:26px;font-size:12.5px;color:#64748b;line-height:1.7;border-top:1px dashed #cbd5e1;padding-top:12px}.pempty{padding:28px;text-align:center;color:#64748b}
+@media(max-width:600px){.paper{padding:22px 18px}.pinfo{grid-template-columns:1fr}}
+@media print{body{background:#fff!important;padding:0}.top,.nav,.noprint,#modals{display:none!important}.wrap{max-width:none;padding:0}.paper{box-shadow:none;margin:0;border-radius:0;padding:6mm}@page{size:A4;margin:12mm}}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -488,13 +503,23 @@ function paintTop() {
   var dark = document.documentElement.classList.contains("dark");
   var role = ME && ME.role;
   var h = '<div class="brand">' + chipSVG() + "<span>" + (role === "student" || !role ? esc(tx("title")) : "自动工程实作课") + "</span><small>CLOUD</small></div><span class=\"sp\"></span>";
-  if (role === "teacher") h += '<span class="save" id="saveState"></span>';
+  if (role === "teacher") h += '<span class="save" id="saveState"></span><button class="ibtn" onclick="toggleSound()" title="有人交 Code、举手时响一声">' + (soundOn() ? "🔔" : "🔕") + "</button>";
   if (role !== "teacher") h += '<button class="ibtn" onclick="setLang(LANG===\'zh\'?\'en\':\'zh\')">' + (LANG === "zh" ? "EN" : "中") + "</button>";
   h += '<button class="ibtn" onclick="toggleTheme()" title="深色 / 浅色">' + (dark ? "☀️" : "🌙") + "</button>";
   $("topbar").innerHTML = h;
 }
-var TEACHER_NAV = [["classes", "🏫", "上课"], ["tracker", "📊", "追踪表"], ["files", "📤", "文件"], ["settings", "⚙️", "设定"]];
-function studentNav() { return [["progress", "📊", tx("nav_progress")], ["files", "📥", tx("nav_files")]]; }
+var TEACHER_NAV = [["classes", "🏫", "上课"], ["code", "📥", "Code"], ["tracker", "📊", "追踪表"], ["takehome", "📦", "带回家"], ["files", "⋯", "更多"]];
+function studentNav() { return [["submit", "📤", t2("nav_submit")], ["progress", "📊", tx("nav_progress")], ["files", "📥", tx("nav_files")], ["take", "📦", t2("nav_take")]]; }
+function navActive() { var p = (location.hash.split("/")[2] || ""); return (p === "settings" || p === "files") ? "files" : p; }
+function navDots() {
+  if (!T) return {};
+  var live = {}; T.classes.forEach(function (c) { if (inClassToday(c)) live[c.id + "|" + c.week + "|" + c.date] = 1; });
+  var todo = (T.subs || []).some(function (s) { return !s.checked && live[s.class_id + "|" + s.week + "|" + s.date]; });
+  return { classes: T.classes.some(needWeek) || waitingHelp().length > 0, code: todo };
+}
+function moreSeg(active) {
+  return '<div class="seg" style="margin-top:8px"><button class="' + (active === "files" ? "on" : "") + '" onclick="go(\'#/t/files\')">📤 发文件</button><button class="' + (active === "settings" ? "on" : "") + '" onclick="go(\'#/t/settings\')">⚙️ 设定</button></div>';
+}
 function paintNav(prefix, items, active, dots) {
   var nav = $("nav");
   if (!items) { nav.style.display = "none"; return; }
@@ -517,14 +542,16 @@ function route() {
   var role = ME && ME.role;
   if (role === "teacher") {
     var page = parts[0] === "t" ? parts[1] : "";
+    if (page === "invoice") { paintNav(null); document.body.classList.add("printpage"); pageInvoice(parts[2]); return; }
+    document.body.classList.remove("printpage");
     if (!page || !TEACHER_PAGES[page]) { go("#/t/classes"); return; }
-    paintNav("t", TEACHER_NAV, page, { classes: (T && T.classes || []).some(needWeek) });
+    paintNav("t", TEACHER_NAV, navActive(), navDots());
     TEACHER_PAGES[page]();
     return;
   }
   if (role === "student") {
     var sp = parts[0] === "s" ? parts[1] : "";
-    if (!sp || !STUDENT_PAGES[sp]) { go("#/s/progress"); return; }
+    if (!sp || !STUDENT_PAGES[sp]) { go("#/s/submit"); return; }
     paintNav("s", studentNav(), sp);
     STUDENT_PAGES[sp]();
     return;
@@ -606,6 +633,7 @@ async function teacherLogin() {
 }
 async function logout(msg) {
   try { await sb.auth.signOut(); } catch (e) {}
+  stopRealtime();
   ME = null; T = null; S = null; LOGIN_MSG = msg || "";
   go("#/login");
 }
@@ -646,6 +674,8 @@ async function boot() {
   } else if (ME.role === "teacher") {
     sb.rpc("teacher_ping");
     await loadTeacher();
+    await syncTakehomeRules();
+    startRealtime();
   } else {
     await sb.auth.signOut(); ME = null; LOGIN_MSG = tx("err_none");
   }
@@ -677,6 +707,7 @@ async function loadTeacher() {
     T = { classes: res[0], students: res[1], progress: {}, notes: {}, files: res[4], loadedAt: Date.now() };
     res[2].forEach(function (p) { (T.progress[p.student_id] = T.progress[p.student_id] || {})[p.week] = p; });
     res[3].forEach(function (n) { (T.notes[n.class_id] = T.notes[n.class_id] || {})[n.week] = n; });
+    await loadTeacherP2();
   } catch (e) {
     toast("载入失败：" + friendlyDbError(e), true);
     T = T || { classes: [], students: [], progress: {}, notes: {}, files: [] };
@@ -742,6 +773,7 @@ function pageClasses() {
   var first = active[0]; var firstRank = first ? classRank(first)[0] : 9;
   var ip = infoPair("一个班就是一个固定时段的一群学生。每次上课：点开那个班 → 选「今天第几周」→ 按 <b>▶ 开始上课</b>。下课按 <b>■ 下课</b>。几个班可以同时上课。<br>普通班的学生用「名字 + PIN」登入，<b>不用打班级 Code</b>。<br>最上面那张是「现在这班」（照上次上课的星期几、时间推算）。");
   var h = '<div class="row" style="margin-top:6px"><h1>🏫 我的班</h1>' + ip.btn + '<span class="sp"></span><button class="btn ghost sm" onclick="refreshTeacher()">↻ 刷新</button></div>' + ip.box;
+  h += helpCardHTML();
   if (!active.length) h += '<div class="card"><div class="empty">还没有班 → 在下面「开一个新班」填班名。</div></div>';
   h += '<div class="grid" style="margin-top:8px">';
   active.forEach(function (c, i) {
@@ -752,9 +784,9 @@ function pageClasses() {
       + '<div class="row" style="gap:8px"><span class="live' + (c.open ? " on" : "") + '"></span><span class="nm">' + esc(c.name) + '</span><span class="lvl">' + esc(c.level) + "</span>" + (needWeek(c) ? '<span class="reddot" title="记得换周"></span>' : "") + "</div>"
       + '<div style="margin-top:6px"><span class="wk">' + esc(c.week) + '</span> <span class="sub">' + esc(topicOf(c.level, c.week)) + "</span></div>"
       + '<div class="muted">🕘 ' + esc(timeText(c)) + (c.open ? ' · <b style="color:var(--ok)">上课中</b>' : "") + "</div>"
-      + '<div class="tiles"><div class="tile"><small>学生</small><b data-count="' + st.total + '">0</b></div>'
+      + (inClassToday(c) ? liveTiles(c) : '<div class="tiles"><div class="tile"><small>学生</small><b data-count="' + st.total + '">0</b></div>'
       + '<div class="tile"><small>' + esc(c.week) + " 出席</small><b><span data-count=\"" + st.present + '">0</span><span style="font-size:15px;color:var(--ink3)">/' + st.total + "</span></b></div></div>"
-      + '<div class="bar" style="margin-top:10px"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="bar" style="margin-top:10px"><i style="width:' + pct + '%"></i></div>')
       + "</div>";
   });
   h += "</div>";
@@ -772,6 +804,13 @@ function pageClasses() {
   countUp(app);
   clearInterval(_classTimer);
   _classTimer = setInterval(function () { if (location.hash === "#/t/classes" && document.visibilityState === "visible" && !document.querySelector("#modals .back")) refreshTeacher(true); }, 60000);
+}
+function liveTiles(c) {
+  var ss = sessionStats(c), hw = waitingHelp(c.id).length, pct = ss.total ? Math.round(ss.submitted * 100 / ss.total) : 0;
+  return '<div class="tiles"><div class="tile"><small>📥 交了 Code</small><b><span data-count="' + ss.submitted + '">0</span><span style="font-size:15px;color:var(--ink3)">/' + ss.total + "</span></b></div>"
+    + '<div class="tile"' + (hw ? ' style="border-color:var(--warn)"' : "") + '><small>🙋 举手</small><b data-count="' + hw + '">0</b></div></div>'
+    + '<div class="bar" style="margin-top:10px"><i style="width:' + pct + '%"></i></div>'
+    + (ss.missing.length && ss.missing.length <= 8 ? '<div class="muted" style="margin-top:6px">还没交：' + ss.missing.map(esc).join("、") + "</div>" : "");
 }
 async function refreshTeacher(quiet) {
   await loadTeacher();
@@ -801,13 +840,14 @@ function openClass(id) {
   else h += '<div class="muted" style="margin-top:6px">没在上课</div>';
   if (needWeek(c)) h += '<div class="pill warn" style="margin-top:8px">上次已经上过 ' + esc(c.week) + "，帮你选了 " + esc(wk) + "</div>";
   h += '<div class="tiles"><div class="tile"><small>学生</small><b>' + st.total + '</b></div><div class="tile"><small>' + esc(c.week) + ' 出席</small><b>' + st.present + '/' + st.total + '</b></div><div class="tile"><small>' + esc(c.week) + ' 完成</small><b>' + st.done + "/" + st.total + "</b></div></div>"
+    + (inClassToday(c) ? (function () { var ss = sessionStats(c); return '<div class="muted" style="margin-top:8px">📥 交了 <b>' + ss.submitted + "/" + ss.total + "</b>" + (ss.missing.length ? " · 还没交：" + ss.missing.map(esc).join("、") : " · 全部交了 ✅") + "</div>"; })() : "")
     + "<label>今天第几周</label><select id=\"cWeek\">" + weekOptions(c.level, wk) + "</select>"
     + '<details class="box" style="margin-top:12px"' + (c.open ? " open" : "") + "><summary>🕘 日期、时间（不改就用今天、现在）</summary><div class=\"in\"><div class=\"grid2\">"
     + '<div><label>日期</label><input type="date" id="cDate" value="' + esc(c.open && c.date ? c.date : todayMYT()) + '"></div>'
     + '<div><label>时间（24 小时）</label><input type="time" id="cTime" value="' + esc(c.open && c.time ? c.time : nowHM()) + '"></div></div></div></details>'
     + '<div class="acts">' + (c.open ? '<button class="btn" onclick="startClass(' + jsq(id) + ')">↻ 更新这堂</button><button class="btn red" onclick="stopClass(' + jsq(id) + ')">■ 下课</button>'
       : '<button class="btn" onclick="startClass(' + jsq(id) + ')">▶ 开始上课</button>')
-    + '<button class="btn ghost" onclick="trackerFor(' + jsq(id) + ')">📊 看追踪表</button></div>'
+    + '<button class="btn ghost" onclick="trackerFor(' + jsq(id) + ')">📊 看追踪表</button><button class="btn ghost" onclick="UI.code.cls=' + jsq(id) + ';go(\'#/t/code\')">📥 看交的 Code</button></div>'
     + '<details class="box" style="margin-top:16px"><summary>⋯ 更多</summary><div class="in"><div class="acts" style="margin-top:0">'
     + '<button class="btn ghost" onclick="renameClass(' + jsq(id) + ')">✏️ 改班名</button>'
     + '<button class="btn ghost" onclick="archiveClass(' + jsq(id) + ',true)">📦 归档（学期结束不用了）</button>'
@@ -1031,7 +1071,7 @@ function progressHTML(c) {
     var sid = jsq(s.id);
     var opts = ["未完成"].concat(TASKS.map(function (t) { return t + " ✓"; }));
     h += '<div class="stu" style="animation-delay:' + Math.min(i * 25, 400) + 'ms"><div class="row"><span class="nm" onclick="openCell(' + sid + ')">' + esc(s.name) + '</span><span class="sp"></span>'
-      + (p.pending ? '<span class="pill warn">🟡 ' + esc(p.pending) + "</span>" : "") + "</div>"
+      + (p.pending ? '<span class="pill warn">🟡 ' + esc(p.pending) + "</span>" : "") + (homeSub(s.id, wk) ? '<span class="pill acc">🏠 在家交</span>' : "") + "</div>"
       + '<div class="att" style="margin-top:8px">' + ATTEND.map(function (a) { return '<button class="' + a[2] + (p.attend === a[0] ? " on" : "") + '" onclick="setAttend(' + sid + ",'" + a[0] + "')\">" + a[1] + "</button>"; }).join("") + "</div>"
       + '<div class="row" style="margin-top:8px;gap:8px"><select style="flex:1" onchange="saveComplete(' + sid + ',this.value)">' + opts.map(function (o) { return "<option" + ((p.complete || "未完成") === o ? " selected" : "") + ">" + o + "</option>"; }).join("") + "</select>"
       + (p.pending ? '<button class="btn green sm" onclick="confirmPending(' + sid + ')">✓ 确认</button>' : "") + "</div>"
@@ -1072,17 +1112,20 @@ async function setAttend(sid, value) {
   if (await saveCell(sid, "attend", cur === value ? "" : value)) pageTracker();
 }
 async function saveComplete(sid, value) {
-  var p = cellOf(sid, UI.week);
-  var row = { complete: value };
-  if (p.pending && completeRank(value) >= pendingRank(p.pending)) row.pending = "";
   var ok = await saveCell(sid, "complete", value);
-  if (ok && row.pending === "") await saveCell(sid, "pending", "");
-  if (ok) pageTracker();
+  if (!ok) return;
+  var r = await sb.rpc("refresh_pending", { p_student: sid, p_week: UI.week });
+  if (!r.error) T.progress[sid][UI.week].pending = r.data || "";
+  pageTracker();
 }
+function homeSub(sid, week) { return (T.subs || []).some(function (x) { return x.student_id === sid && x.week === week && x.home && !x.checked; }); }
 async function confirmPending(sid) {
-  var p = cellOf(sid, UI.week); var rk = pendingRank(p.pending);
-  if (!rk) return;
-  if (await saveCell(sid, "complete", TASKS[rk - 1] + " ✓") && await saveCell(sid, "pending", "")) { toast("✅ 确认了"); pageTracker(); }
+  var r = await sb.rpc("confirm_progress", { p_student: sid, p_week: UI.week });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  var cell = (T.progress[sid] = T.progress[sid] || {})[UI.week] || {};
+  cell.complete = r.data.complete; cell.pending = r.data.pending; T.progress[sid][UI.week] = cell;
+  T.subs.forEach(function (x) { if (x.student_id === sid && x.week === UI.week) x.checked = true; });
+  toast("✅ 确认了"); pageTracker();
 }
 function openCell(sid) {
   var s = findStudent(sid), c = findClass(s.class_id), p = cellOf(sid, UI.week);
@@ -1091,7 +1134,7 @@ function openCell(sid) {
     + "<label>总结（给家长看的）</label><textarea id=\"dSum\">" + esc(p.ai_summary || "") + "</textarea>"
     + "<label>老师备注（只有你看得到，学生和家长看不到）</label><textarea id=\"dNote\">" + esc(p.teacher_note || "") + "</textarea>"
     + '<label>卡在哪里</label><input id="dStuck" value="' + esc(p.stuck || "") + '">'
-    + '<div class="acts"><button class="btn" onclick="saveDetail(' + jsq(sid) + ')">💾 保存</button><button class="btn wa" onclick="whatsapp(' + jsq(sid) + ')">💬 WhatsApp 给家长</button></div>', function () { pageTracker(); });
+    + '<div class="acts"><button class="btn" onclick="saveDetail(' + jsq(sid) + ')">💾 保存</button><button class="btn wa" onclick="whatsapp(' + jsq(sid) + ')">💬 WhatsApp 给家长</button><button class="btn ghost" onclick="viewStudentCode(' + jsq(sid) + "," + jsq(UI.week) + ')">📥 看他交的 Code</button></div>', function () { pageTracker(); });
 }
 async function saveDetail(sid) {
   var p = cellOf(sid, UI.week), ok = true;
@@ -1199,7 +1242,7 @@ function pageFiles() {
   levels.forEach(function (l) { opts += '<option value="level:' + esc(l) + '">📢 全部 ' + esc(l) + " 班</option>"; });
   if (!opts) opts = '<option value="">（先开一个班）</option>';
   var ip = infoPair("选发给哪个班（或某个 Level 的全部班）、第几周。学生登入后在「文件」看得到他们班<b>整年</b>所有周的文件。<br>同一个班、同一周、同一个文件名再发一次，会换成新的。单个文件最多 30 MB。");
-  var h = '<div class="row" style="margin-top:6px"><h1>📤 发文件</h1>' + ip.btn + "</div>" + ip.box
+  var h = moreSeg("files") + '<div class="row" style="margin-top:6px"><h1>📤 发文件</h1>' + ip.btn + "</div>" + ip.box
     + '<div class="card"><div class="grid2"><div><label>发给哪个班</label><select id="fTarget" onchange="UI.filesTarget=this.value;fillFileWeeks()">' + opts + "</select></div>"
     + '<div><label>第几周</label><select id="fWeek" onchange="UI.filesWeek=this.value"></select></div>'
     + '<div><label>文件名（例如 W05_FL.ino）</label><input id="fName"></div><div><label>说明（可选）</label><input id="fDesc" placeholder="例如：今天的范例程序"></div></div>'
@@ -1299,17 +1342,17 @@ async function deleteFile(id) {
    ================================================================= */
 async function pageSettings() {
   var app = $("app");
-  app.innerHTML = '<div class="row" style="margin-top:6px"><h1>⚙️ 设定</h1></div><div class="loading"><i></i><i></i><i></i></div>';
+  app.innerHTML = moreSeg("settings") + '<div class="row" style="margin-top:6px"><h1>⚙️ 设定</h1></div><div class="loading"><i></i><i></i><i></i></div>';
   if (CFG.GOOGLE_CLIENT_ID) loadScript("https://accounts.google.com/gsi/client").catch(function () {});
   var st = (await sb.rpc("backup_status")).data || {};
   var sess = (await sb.auth.getSession()).data.session;
   var pushOn = false, pushOk = "serviceWorker" in navigator && "PushManager" in window;
   if (pushOk) { try { var reg = await navigator.serviceWorker.ready; pushOn = !!(await reg.pushManager.getSubscription()); } catch (e) {} }
-  var ipB = infoPair("资料一有改动，最多 1 分钟就自动备份到 Google Drive 的「自动工程实作课_云端备份」文件夹：<br>· <b>latest.json</b>：永远是最新的一份<br>· <b>daily_日期.json</b>：每天一份，留 60 天<br>网页关着也会备份（是 Supabase 自己每分钟检查）。老师的文件本身不备份（原档在你那边）。");
+  var ipB = infoPair("资料一有改动，最多 1 分钟就自动备份到 Google Drive 的「自动工程实作课_云端备份」文件夹：<br>· <b>latest.json</b>：永远是最新的一份（不含学生交的 Code 本身，比较小）<br>· <b>daily_日期.json</b>：每天一份<b>完整</b>的（有 Code），晚上 10 点后再更新一次，留 60 天<br>网页关着也会备份（是 Supabase 自己每分钟检查）。老师的文件本身不备份（原档在你那边）。");
   var ipP = infoPair("6 天没有登入老师页，就推播提醒你（早上 9 点到晚上 9 点，一天最多一次），免得 Supabase 闲置 7 天被暂停。<br>另外 GitHub 每 3 天也会自动碰一下 Supabase。<br><b>iPhone</b>：要先用 Safari「分享 → 加到主画面」，从主画面打开这个 app，才开得了推播。");
   var ipC = infoPair("课程表（每周主题、挑战）来自 repo 里的 <b>course.json</b>，跟 Server.py 的 Course/course.json 是同一份。要更新就把新的 course.json 上传到 GitHub 覆盖。");
   var weeksListed = COURSE ? LEVELS.map(function (l) { return l + " " + (((COURSE.curriculum || {})[l] || {}).w || []).length + " 周"; }).join(" · ") : "";
-  var h = '<div class="row" style="margin-top:6px"><h1>⚙️ 设定</h1></div>'
+  var h = moreSeg("settings") + '<div class="row" style="margin-top:6px"><h1>⚙️ 设定</h1></div>'
     + '<div class="card' + (st.connected ? "" : " glow") + '"><h2>💾 Google Drive 备份 ' + ipB.btn + "</h2>" + ipB.box
     + (st.connected ? '<div class="okbox">✅ 已连接' + (st.email ? "：" + esc(st.email) : "") + "</div>" : '<div class="err">还没连接 · 现在没有自动备份</div>')
     + '<div class="tiles"><div class="tile"><small>最后备份</small><b style="font-size:16px">' + esc(st.last_at ? fmtTime(st.last_at) : "—") + "</b></div><div class=\"tile\"><small>最后检查</small><b style=\"font-size:16px\">" + esc(st.last_try ? fmtTime(st.last_try) : "—") + "</b></div></div>"
@@ -1390,7 +1433,750 @@ async function testPush(btn) {
   if (!j.ok) alertBox("测试失败：" + (j.error || "")); else toast("📨 送出了，等几秒看通知");
 }
 
-var TEACHER_PAGES = { classes: pageClasses, tracker: pageTracker, files: pageFiles, settings: pageSettings };
+/* =================================================================
+   第 2 阶段：交 Code、检查、存资料夹、举手、作品带回家、收据
+   ================================================================= */
+var SUB_COLS = "id,student_id,name,class_id,class_name,level,week,date,slot,task,board,problem,home,group_id,partners,submitted_by,checked,checked_at,created_at,updated_at";
+var TASK_LABEL = { "基础": "基础", "挑战1": "挑战 1", "挑战2": "挑战 2" };
+var TASK_SUFFIX = { "基础": "base", "挑战1": "c1", "挑战2": "c2" };
+function taskName(t) { return TASK_LABEL[t] || t || "基础"; }
+
+/* ---------- 老师：资料（交的 Code 不含 Code 本身，要看时才载入） ---------- */
+async function fetchAllCols(table, cols, order) {
+  var out = [], from = 0;
+  for (;;) {
+    var q = sb.from(table).select(cols).range(from, from + 999);
+    if (order) q = q.order(order[0], { ascending: order[1] !== false });
+    var r = await q;
+    if (r.error) throw r.error;
+    out = out.concat(r.data || []);
+    if (!r.data || r.data.length < 1000) break;
+    from += 1000;
+  }
+  return out;
+}
+async function loadTeacherP2() {
+  try {
+    var res = await Promise.all([
+      fetchAllCols("submissions", SUB_COLS, ["created_at", false]),
+      sb.from("help_queue").select("*").or("status.eq.waiting,created_at.gte." + new Date(Date.now() - 86400000).toISOString()).order("created_at"),
+      fetchAll("takehome", ["created_at"])
+    ]);
+    T.subs = res[0];
+    T.help = (res[1].data || []);
+    T.takehome = res[2];
+  } catch (e) {
+    toast("载入失败：" + friendlyDbError(e), true);
+    T.subs = T.subs || []; T.help = T.help || []; T.takehome = T.takehome || [];
+  }
+}
+async function syncTakehomeRules() {
+  if (!COURSE || !COURSE.takehome) return;
+  var r = await sb.rpc("sync_takehome_rules", { p_rules: COURSE.takehome });
+  if (!r.error && r.data) { T.takehome = await fetchAll("takehome", ["created_at"]); toast("📦 带回家规则更新了，免费／自费已重算"); }
+}
+function takeRule(level) {
+  var rules = (COURSE && COURSE.takehome) || {};
+  return rules[level] || rules["default"] || { mode: "semester", free: 1, rule: "", rule_en: "" };
+}
+function periodOf(level, week) { return takeRule(level).mode === "year" ? "全年" : (weekNum(week) <= 18 ? "上学期" : "下学期"); }
+
+/* ---------- 即时：有人交 Code / 举手 → 老师页马上更新 + 响一声 ---------- */
+var RT = null, _rtTimer = null, _pollTimer = null;
+function soundOn() { try { return localStorage.getItem("iot_sound") !== "off"; } catch (e) { return true; } }
+function toggleSound() { try { localStorage.setItem("iot_sound", soundOn() ? "off" : "on"); } catch (e) {} paintTop(); toast(soundOn() ? "🔔 提示声开了" : "🔕 提示声关了"); }
+var _ac = null;
+function beep(kind) {
+  if (!soundOn()) return;
+  try {
+    _ac = _ac || new (window.AudioContext || window.webkitAudioContext)();
+    var o = _ac.createOscillator(), g = _ac.createGain();
+    o.type = "sine"; o.frequency.value = kind === "help" ? 880 : 660;
+    g.gain.setValueAtTime(0.0001, _ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.25, _ac.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, _ac.currentTime + (kind === "help" ? 0.5 : 0.25));
+    o.connect(g); g.connect(_ac.destination); o.start(); o.stop(_ac.currentTime + 0.55);
+  } catch (e) {}
+}
+function startRealtime() {
+  if (RT) return;
+  RT = sb.channel("teacher-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "submissions" }, function (p) {
+      if (p.eventType === "INSERT" || (p.eventType === "UPDATE" && p.new && !p.new.checked && p.old && p.new.created_at !== p.old.created_at)) beep("sub");
+      liveRefresh();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "help_queue" }, function (p) {
+      if (p.eventType === "INSERT") beep("help");
+      liveRefresh();
+    })
+    .subscribe();
+  clearInterval(_pollTimer);
+  _pollTimer = setInterval(function () { if (document.visibilityState === "visible" && /#\/t\/(classes|code)/.test(location.hash)) liveRefresh(true); }, 20000);
+}
+function stopRealtime() { if (RT) { sb.removeChannel(RT); RT = null; } clearInterval(_pollTimer); }
+function liveRefresh(quiet) {
+  clearTimeout(_rtTimer);
+  _rtTimer = setTimeout(async function () {
+    if (!T || !ME || ME.role !== "teacher") return;
+    var before = (T.help || []).filter(function (h) { return h.status === "waiting"; }).length;
+    await Promise.all([loadTeacherP2(), (async function () {
+      var r = await fetchAll("progress"); T.progress = {};
+      r.forEach(function (p) { (T.progress[p.student_id] = T.progress[p.student_id] || {})[p.week] = p; });
+    })()]);
+    var after = T.help.filter(function (h) { return h.status === "waiting"; }).length;
+    if (quiet && after > before) beep("help");
+    if (!document.querySelector("#modals .back") && /#\/t\/(classes|code)/.test(location.hash)) route();
+    else paintNav("t", TEACHER_NAV, navActive(), navDots());
+  }, quiet ? 0 : 800);
+}
+
+/* ---------- 这堂课的统计 ---------- */
+function sessionSubs(c) {
+  return (T.subs || []).filter(function (s) { return s.class_id === c.id && s.week === c.week && s.date === c.date; });
+}
+function sessionStats(c) {
+  var list = studentsOf(c), sub = {};
+  sessionSubs(c).forEach(function (s) { if (s.student_id) sub[s.student_id] = true; });
+  var missing = list.filter(function (s) { return !sub[s.id]; }).map(function (s) { return s.name; });
+  return { total: list.length, submitted: list.length - missing.length, missing: missing };
+}
+function waitingHelp(cid) { return (T.help || []).filter(function (h) { return h.status === "waiting" && (!cid || h.class_id === cid); }); }
+function inClassToday(c) { return c.open && !c.archived && c.date === todayMYT(); }
+
+/* ---------- 举手 ---------- */
+function helpCardHTML() {
+  var list = waitingHelp();
+  if (!list.length) return "";
+  var h = '<div class="card glow" style="border-color:var(--warn);box-shadow:0 0 26px rgba(251,191,36,.25)"><h2>🙋 举手排队 <span class="pill warn">' + list.length + " 位在等</span></h2>";
+  list.forEach(function (x, i) {
+    var c = findClass(x.class_id), mins = Math.floor((Date.now() - new Date(x.created_at).getTime()) / 60000);
+    h += '<div class="file"><span class="fi mono" style="color:var(--warn);font-weight:900">' + (i + 1) + '</span><div class="sp"><div class="fn">' + esc(x.name) + ' <span class="muted">· ' + esc(c ? c.name : "") + " " + esc(x.week) + (x.task ? " · " + esc(taskName(x.task)) : "") + "</span></div>"
+      + '<div class="muted">' + (x.problem ? "卡在：" + esc(x.problem) + " · " : "") + (mins < 1 ? "刚刚" : "等了 " + mins + " 分钟") + "</div></div>"
+      + '<button class="btn ghost sm" onclick="viewStudentCode(' + jsq(x.student_id) + "," + jsq(x.week) + ')">📄 Code</button><button class="btn sm" onclick="helpDone(' + jsq(x.id) + ')">✓ 好了</button></div>';
+  });
+  return h + "</div>";
+}
+async function helpDone(id) {
+  var r = await sb.rpc("help_done", { p_id: id });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  T.help.forEach(function (h) { if (h.id === id) h.status = "done"; });
+  liveRefresh(true);
+}
+
+/* ---------- 看 Code（要看的时候才去拿 Code 本身） ---------- */
+async function fetchCode(ids) {
+  var r = await sb.from("submissions").select("id,code,log").in("id", ids);
+  if (r.error) throw r.error;
+  var map = {}; (r.data || []).forEach(function (x) { map[x.id] = x; });
+  return map;
+}
+function subById(id) { for (var i = 0; i < T.subs.length; i++) if (T.subs[i].id === id) return T.subs[i]; return null; }
+async function viewStudentCode(sid, week) {
+  var ids = T.subs.filter(function (s) { return s.student_id === sid && s.week === week; }).map(function (s) { return s.id; });
+  if (!ids.length) { alertBox("这个学生 " + week + " 还没交 Code。"); return; }
+  viewSubs(ids);
+}
+async function viewSubs(ids) {
+  var list = ids.map(subById).filter(Boolean).sort(function (a, b) { return taskRank(a.task) - taskRank(b.task); });
+  if (!list.length) return;
+  var b = openSheet('<h2>📄 ' + esc(list[0].name) + "</h2><div class=\"loading\"><i></i><i></i><i></i></div>");
+  var codes;
+  try { codes = await fetchCode(ids); } catch (e) { b.close(); alertBox(friendlyDbError(e)); return; }
+  var h = '<button class="x" type="button" onclick="closeSheets()">✕</button><h2>📄 ' + esc(list[0].name) + ' <span class="lvl">' + esc(list[0].level) + "</span></h2>";
+  list.forEach(function (s) {
+    var c = codes[s.id] || {};
+    h += '<div class="card flat" style="padding:12px"><div class="row"><span class="pill ' + (s.checked ? "ok" : "warn") + '">' + (s.checked ? "✓ " : "○ ") + esc(taskName(s.task)) + "</span>" + (s.home ? '<span class="pill acc">🏠 在家交</span>' : "") + '<span class="muted">' + esc(s.week) + " · " + esc(fmtTime(s.created_at)) + " · " + esc(s.board) + "</span></div>"
+      + (s.partners && s.partners.length ? '<div class="muted">👥 跟 ' + esc(s.partners.join("、")) + " 共用电脑</div>" : "")
+      + (s.problem ? '<div class="muted">卡在：' + esc(s.problem) + "</div>" : "")
+      + '<pre class="codev">' + esc(c.code || "") + "</pre>" + (c.log ? '<div class="muted">串口 Log：</div><pre class="codev log">' + esc(c.log) + "</pre>" : "")
+      + '<div class="row" style="gap:6px;margin-top:8px"><button class="btn ' + (s.checked ? "ghost" : "green") + ' sm" onclick="toggleCheck(' + jsq(s.id) + "," + (!s.checked) + ',true)">' + (s.checked ? "✓ 检查过了（取消）" : "✓ 检查过，算完成") + "</button>"
+      + '<button class="btn ghost sm" onclick="copyCodeOf(this,' + jsq(s.id) + ')">📋 复制代码</button><button class="btn ghost sm" onclick="downloadIno([' + jsq(s.id) + '])">⬇ .ino</button></div></div>';
+  });
+  b.querySelector(".sheet").innerHTML = h;
+  b._codes = codes;
+  window._lastCodes = codes;
+}
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return false; });
+  var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+  var ok = false; try { ok = document.execCommand("copy"); } catch (e) {} ta.remove(); return Promise.resolve(ok);
+}
+function flash(btn, text) { var old = btn.textContent; btn.textContent = text; setTimeout(function () { btn.textContent = old; }, 1500); }
+async function copyCodeOf(btn, id) {
+  var c = (window._lastCodes || {})[id]; if (!c) c = (await fetchCode([id]))[id] || {};
+  flash(btn, (await copyText(c.code || "")) ? "✅ 已复制" : "复制失败");
+}
+async function copyForAI(btn, ids) {
+  var list = ids.map(subById).filter(Boolean).sort(function (a, b) { return taskRank(a.task) - taskRank(b.task); });
+  if (!list.length) return;
+  var codes = await fetchCode(ids), s = list[0];
+  var topic = topicOf(s.level, s.week), chs = challengesOf(s.level, s.week);
+  var lines = [list.length > 1 ? "请帮我检查这位学生这堂课交的代码，并帮我准备这位学生这堂课的总结。" : "请帮我检查这份学生代码，并帮我准备这位学生这堂课的总结。", "",
+    "学生：" + s.name + ((s.partners && s.partners.length) ? "（跟 " + s.partners.join("、") + " 共用一台电脑，一起做）" : ""), "班：" + s.class_name, "Level：" + s.level, "Week：" + s.week + (topic ? "（" + topic + "）" : "")];
+  if (chs.length) lines.push("这周的挑战：" + chs.map(function (x, i) { return "★挑战" + (i + 1) + " " + x; }).join(" / "));
+  list.forEach(function (x) {
+    var c = codes[x.id] || {};
+    lines.push("", "—— 任务：" + taskName(x.task) + (x.home ? "（在家交）" : "") + " ——", "学生说遇到的问题：" + (x.problem || "（没填）"), "```", c.code || "", "```");
+    if (c.log) lines.push("串口 Log：", "```", c.log, "```");
+  });
+  lines.push("", "请按下面的格式回答，要简短：", "1) " + (list.length > 1 ? "每个任务有没有语法错" : "有没有语法错"), "2) 逻辑问题（例如 delay 卡住、millis 没更新、pinMode 漏了）",
+    "3) 给家长看的一两句总结：用学生的名字，讲他今天做到了什么；不要写他卡在哪里", "4) 下一堂的建议（给老师看）");
+  flash(btn, (await copyText(lines.join("\n"))) ? "✅ 已复制" : "复制失败");
+}
+async function toggleCheck(id, want, fromSheet) {
+  var r = await sb.rpc("check_submission", { p_id: id, p_checked: want });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  var s = subById(id);
+  T.subs.forEach(function (x) { if (x.id === id || (s && s.group_id && x.group_id === s.group_id)) x.checked = want; });
+  if (r.data && r.data.in_list === false) alertBox("已标记检查过。\n不过这份不是名单上的学生交的，追踪表没有更新。");
+  if (fromSheet) closeSheets();
+  liveRefresh(true);
+}
+
+/* ---------- 存成 .ino：一个学生 → 直接写进资料夹；多选 → zip（里面也是一样的资料夹） ---------- */
+function folderSafe(n) { var t = String(n || "").replace(/[\\/:*?"<>|\x00-\x1f]+/g, "_").replace(/\s+/g, "_").replace(/^[._]+|[._]+$/g, "").replace(/_+/g, "_"); return (t || "unknown").slice(0, 60); }
+function sketchSafe(n) { var t = String(n || "").replace(/[^A-Za-z0-9_]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, ""); if (!t) t = "student"; if (!/^[A-Za-z]/.test(t)) t = "s_" + t; return t.slice(0, 40); }
+function inoPlan(list) {   // → [{path:[...], name, id}]
+  var out = [], usedByClass = {};
+  list.forEach(function (s) {
+    var sk = sketchSafe(s.name), suf = TASK_SUFFIX[s.task] || "base", d = String(s.date || "").replace(/-/g, "");
+    var hist = sk + "_" + s.week + "_" + suf + "_" + d;
+    out.push({ path: ["ByName", folderSafe(s.name), hist], name: hist + ".ino", id: s.id });
+    var clsFolder = folderSafe((s.class_name || "class") + "_" + s.level + "_" + s.week + "_" + d + (s.home ? "_home" : ""));
+    var used = usedByClass[clsFolder] = usedByClass[clsFolder] || {};
+    var base = sk + "_" + suf, cs = base, n = 2;
+    while (used[cs]) { cs = sk + "_" + n + "_" + suf; n++; }
+    used[cs] = true;
+    out.push({ path: ["ByClass", clsFolder, cs], name: cs + ".ino", id: s.id });
+  });
+  return out;
+}
+function idbDir(op, value) {
+  return new Promise(function (ok) {
+    try {
+      var req = indexedDB.open("iot_fs", 1);
+      req.onupgradeneeded = function () { req.result.createObjectStore("h"); };
+      req.onsuccess = function () {
+        var tx = req.result.transaction("h", op === "get" ? "readonly" : "readwrite"), st = tx.objectStore("h");
+        var r2 = op === "get" ? st.get("dir") : st.put(value, "dir");
+        r2.onsuccess = function () { ok(op === "get" ? r2.result : true); };
+        r2.onerror = function () { ok(null); };
+      };
+      req.onerror = function () { ok(null); };
+    } catch (e) { ok(null); }
+  });
+}
+async function getSaveDir(pickNew) {
+  var h = pickNew ? null : await idbDir("get");
+  if (h) {
+    var p = await h.queryPermission({ mode: "readwrite" });
+    if (p !== "granted") p = await h.requestPermission({ mode: "readwrite" });
+    if (p === "granted") return h;
+  }
+  h = await window.showDirectoryPicker({ id: "iot-subs", mode: "readwrite" });
+  await idbDir("put", h);
+  return h;
+}
+async function saveToFolder(ids, pickNew) {
+  var list = ids.map(subById).filter(Boolean);
+  if (!list.length) return;
+  if (!window.showDirectoryPicker) { toast("这个浏览器不能直接写资料夹，改成下载 zip（要写资料夹请用电脑的 Chrome / Edge）"); return downloadZip(ids); }
+  try {
+    var dir = await getSaveDir(pickNew);
+    var codes = await fetchCode(list.map(function (s) { return s.id; }));
+    var plan = inoPlan(list);
+    for (var i = 0; i < plan.length; i++) {
+      var d = dir;
+      for (var k = 0; k < plan[i].path.length; k++) d = await d.getDirectoryHandle(plan[i].path[k], { create: true });
+      var fh = await d.getFileHandle(plan[i].name, { create: true });
+      var w = await fh.createWritable(); await w.write((codes[plan[i].id] || {}).code || ""); await w.close();
+    }
+    toast("💾 存好了 " + list.length + " 份 → 「" + dir.name + "」的 ByName / ByClass");
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    alertBox("存不了：" + errText(e));
+  }
+}
+async function downloadZip(ids) {
+  var list = ids.map(subById).filter(Boolean);
+  if (!list.length) return;
+  try {
+    await loadScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js");
+    var codes = await fetchCode(list.map(function (s) { return s.id; }));
+    var zip = new window.JSZip();
+    inoPlan(list).forEach(function (p) { zip.file(p.path.concat([p.name]).join("/"), (codes[p.id] || {}).code || ""); });
+    var blob = await zip.generateAsync({ type: "blob" });
+    saveBlob(blob, "IoT_Submissions_" + todayMYT().replace(/-/g, "") + ".zip");
+  } catch (e) { alertBox("下载不了：" + errText(e)); }
+}
+async function downloadIno(ids) {
+  var codes = await fetchCode(ids);
+  ids.forEach(function (id) {
+    var s = subById(id); if (!s) return;
+    saveBlob(new Blob([(codes[id] || {}).code || ""], { type: "text/plain;charset=utf-8" }), sketchSafe(s.name) + "_" + s.week + "_" + (TASK_SUFFIX[s.task] || "base") + ".ino");
+  });
+}
+function saveBlob(blob, name) {
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+
+/* =================================================================
+   老师页：📥 交的 Code
+   ================================================================= */
+UI.code = { q: "", task: "", todo: false, cls: "", picks: {}, open: {} };
+function subGroups() {
+  var groups = {}, order = [];
+  T.subs.forEach(function (s) {
+    var k = s.class_id + "|" + s.week + "|" + s.date;
+    if (!groups[k]) { groups[k] = { key: k, class_id: s.class_id, class_name: s.class_name, level: s.level, week: s.week, date: s.date, items: [], latest: "" }; order.push(k); }
+    groups[k].items.push(s);
+    if (s.created_at > groups[k].latest) groups[k].latest = s.created_at;
+  });
+  return order.map(function (k) { return groups[k]; }).sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.latest).localeCompare(String(a.latest)); });
+}
+function groupIsLive(g) { var c = findClass(g.class_id); return !!(c && inClassToday(c) && c.week === g.week && c.date === g.date); }
+function studentCards(g) {
+  var F = UI.code, map = {}, order = [];
+  g.items.forEach(function (s) {
+    if (F.task && s.task !== F.task) return;
+    if (F.todo && s.checked) return;
+    if (F.q && s.name.toLowerCase().indexOf(F.q.toLowerCase()) < 0) return;
+    var k = s.student_id || ("n:" + s.name.toLowerCase());
+    if (!map[k]) { map[k] = { key: g.key + "|" + k, name: s.name, list: [] }; order.push(k); }
+    map[k].list.push(s);
+  });
+  return order.map(function (k) { var x = map[k]; x.list.sort(function (a, b) { return taskRank(a.task) - taskRank(b.task); }); return x; }).sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
+}
+function pageCode() {
+  var app = $("app"), F = UI.code;
+  var groups = subGroups().filter(function (g) { return !F.cls || g.class_id === F.cls; });
+  var ip = infoPair("按「班 + 第几周 + 日期」分开。同一个学生同一堂交不同任务（基础 / 挑战 1 / 挑战 2）分开存；同一个任务重交才覆盖，而且要重新检查。<br>"
+    + "按任务方块 = 检查过，这个任务算完成（同组一起交的会一起算）。<br><b>🏠 在家交</b>的不算出席，一样要你检查。<br>"
+    + "<b>💾</b> = 写进你电脑的资料夹（第一次会问你选哪个资料夹，要用电脑的 Chrome / Edge）；打勾几位再按 <b>⬇ zip</b> = 下载成 zip，里面也是一样的 ByName / ByClass 资料夹。");
+  var h = '<div class="row" style="margin-top:6px"><h1>📥 交的 Code</h1>' + ip.btn + '<span class="sp"></span><button class="btn ghost sm" onclick="liveRefresh()">↻</button></div>' + ip.box;
+  h += helpCardHTML();
+  h += '<div class="card flat" style="padding:12px"><div class="grid2"><input placeholder="🔍 找学生" value="' + esc(F.q) + '" oninput="UI.code.q=this.value;clearTimeout(window._cq);window._cq=setTimeout(pageCode,250)">'
+    + '<select onchange="UI.code.cls=this.value;pageCode()"><option value="">全部班</option>' + T.classes.map(function (c) { return '<option value="' + esc(c.id) + '"' + (F.cls === c.id ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("") + "</select>"
+    + '<select onchange="UI.code.task=this.value;pageCode()"><option value="">全部任务</option>' + TASKS.map(function (t) { return '<option value="' + t + '"' + (F.task === t ? " selected" : "") + ">" + taskName(t) + "</option>"; }).join("") + "</select>"
+    + '<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox"' + (F.todo ? " checked" : "") + ' onchange="UI.code.todo=this.checked;pageCode()"> 只看待检查</label></div></div>';
+  if (!groups.length) h += '<div class="card"><div class="empty">还没有学生交 Code。学生交了会马上出现在这里。</div></div>';
+  groups.forEach(function (g, gi) {
+    var live = groupIsLive(g), todo = g.items.filter(function (s) { return !s.checked; }).length;
+    var allHome = g.items.every(function (s) { return s.home; });
+    var open = (g.key in F.open) ? F.open[g.key] : (live || gi === 0);
+    F.open[g.key] = open;   // 记下画出来的样子：浏览器插入「已展开」的 details 也会触发 toggle，状态一样就不重画
+    var cards = open ? studentCards(g) : [];
+    h += '<details class="box"' + (open ? " open" : "") + ' ontoggle="codeToggle(this,' + jsq(g.key) + ')"><summary>' + (live ? '<span class="live on"></span>' : (allHome ? "🏠" : "📦"))
+      + " " + esc(g.class_name) + ' <span class="lvl">' + esc(g.level) + '</span><span class="mono" style="color:var(--accent)">' + esc(g.week) + '</span><span class="muted">' + esc(g.date) + "</span>"
+      + (todo ? '<span class="pill warn">待检查 ' + todo + "</span>" : '<span class="pill ok">✓ 全部检查完</span>') + '</summary><div class="in">';
+    if (open) {
+      var c = findClass(g.class_id);
+      if (live && c) { var st = sessionStats(c); h += '<div class="muted" style="margin-bottom:8px">交了 <b>' + st.submitted + "/" + st.total + "</b>" + (st.missing.length ? " · 还没交：" + st.missing.map(esc).join("、") : " · 全部交了 ✅") + "</div>"; }
+      h += '<div class="row" style="gap:6px;margin-bottom:10px"><button class="btn ghost sm" onclick="saveGroupFolder(' + jsq(g.key) + ')">💾 存这堂到资料夹</button><button class="btn ghost sm" onclick="checkGroup(' + jsq(g.key) + ')">✓ 这堂全部检查过</button><button class="btn ghost sm" onclick="deleteGroup(' + jsq(g.key) + ')">🗑 删这一堂</button></div>';
+      if (!cards.length) h += '<div class="empty">没有符合的提交。</div>';
+      h += '<div class="grid">';
+      cards.forEach(function (st) {
+        var ids = st.list.map(function (s) { return s.id; }), done = st.list.every(function (s) { return s.checked; });
+        var mates = []; st.list.forEach(function (s) { (s.partners || []).forEach(function (m) { if (mates.indexOf(m) < 0) mates.push(m); }); });
+        var prob = st.list.map(function (s) { return s.problem; }).filter(Boolean)[0] || "";
+        var home = st.list.some(function (s) { return s.home; }), picked = !!F.picks[st.key];
+        h += '<div class="stu" style="position:relative' + (done ? ";opacity:.78" : "") + (picked ? ";border-color:var(--accent)" : "") + '">'
+          + '<input type="checkbox" class="pickbox"' + (picked ? " checked" : "") + ' onchange="pickSubs(' + jsq(st.key) + "," + jsq(JSON.stringify(ids)) + ',this.checked)">'
+          + '<div class="row" style="gap:6px;padding-right:28px"><span class="nm" onclick="viewSubs(' + esc(JSON.stringify(ids)) + ')">' + esc(st.name) + "</span>" + (home ? '<span class="pill acc">🏠 在家交</span>' : "") + (st.list[0].student_id ? "" : '<span class="pill bad">名单没有</span>') + "</div>"
+          + (mates.length ? '<div class="muted">👥 跟 ' + esc(mates.join("、")) + " 共用电脑</div>" : "")
+          + '<div class="att" style="margin-top:8px">' + st.list.map(function (s) { return '<button class="' + (s.checked ? "on a-ok" : "") + '" onclick="toggleCheck(' + jsq(s.id) + "," + (!s.checked) + ')" title="' + (s.checked ? "检查过了（按一下取消）" : "按一下＝检查过，算完成") + '">' + (s.checked ? "✓ " : "○ ") + esc(taskName(s.task)) + "</button>"; }).join("") + "</div>"
+          + (prob ? '<div class="muted" style="margin-top:6px">卡在：' + esc(prob) + "</div>" : "")
+          + '<div class="muted mono" style="font-size:12px;margin-top:4px">' + esc(fmtTime(st.list[st.list.length - 1].created_at).slice(11)) + " 交</div>"
+          + '<div class="row" style="gap:6px;margin-top:8px"><button class="btn ghost sm" onclick="viewSubs(' + esc(JSON.stringify(ids)) + ')">📄 看</button><button class="btn ghost sm" onclick="copyForAI(this,' + esc(JSON.stringify(ids)) + ')">🤖 复制给 AI</button><button class="btn ghost sm" onclick="saveToFolder(' + esc(JSON.stringify(ids)) + ')" title="写进资料夹">💾</button><button class="btn ghost sm" onclick="deleteSubs(' + esc(JSON.stringify(ids)) + "," + jsq(st.name) + ')" title="删掉">🗑</button></div></div>';
+      });
+      h += "</div>";
+    }
+    h += "</div></details>";
+  });
+  var picks = Object.keys(F.picks);
+  if (picks.length) h += '<div class="pickbar"><b>已选 ' + picks.length + ' 位</b><button class="btn sm" onclick="zipPicked()">⬇ zip</button><button class="btn ghost sm" onclick="checkPicked()">✓ 全部检查过</button><button class="btn ghost sm" onclick="UI.code.picks={};pageCode()">取消</button></div>';
+  app.innerHTML = h;
+}
+function codeToggle(el, key) {
+  if (UI.code.open[key] === el.open) return;
+  UI.code.open[key] = el.open;
+  if (el.open) pageCode();
+}
+function pickSubs(key, idsJson, on) { if (on) UI.code.picks[key] = JSON.parse(idsJson); else delete UI.code.picks[key]; pageCode(); }
+function pickedIds() { var ids = []; Object.keys(UI.code.picks).forEach(function (k) { ids = ids.concat(UI.code.picks[k]); }); return ids; }
+async function zipPicked() { await downloadZip(pickedIds()); }
+async function checkPicked() {
+  var ids = pickedIds().filter(function (id) { var s = subById(id); return s && !s.checked; });
+  for (var i = 0; i < ids.length; i++) { var s = subById(ids[i]); if (s && s.checked) continue; await sb.rpc("check_submission", { p_id: ids[i], p_checked: true }); var x = subById(ids[i]); if (x) x.checked = true; }
+  UI.code.picks = {}; toast("✅ 已标为检查过"); liveRefresh(true);
+}
+function groupByKey(key) { var gs = subGroups(); for (var i = 0; i < gs.length; i++) if (gs[i].key === key) return gs[i]; return null; }
+async function saveGroupFolder(key) { var g = groupByKey(key); if (g) await saveToFolder(g.items.map(function (s) { return s.id; })); }
+async function checkGroup(key) {
+  var g = groupByKey(key); if (!g) return;
+  var todo = g.items.filter(function (s) { return !s.checked; });
+  if (!todo.length) { toast("这堂全部检查过了"); return; }
+  if (!await ask({ title: "全部检查过？", text: "把这堂 " + todo.length + " 份还没检查的全部标为检查过？\n完成度会跟着更新。", yes: "✓ 全部检查过" })) return;
+  for (var i = 0; i < todo.length; i++) { if (todo[i].checked) continue; await sb.rpc("check_submission", { p_id: todo[i].id, p_checked: true }); todo[i].checked = true; }
+  toast("✅ 好了"); liveRefresh(true);
+}
+async function deleteSubs(ids, name) {
+  var all = {}; ids.forEach(function (id) { var s = subById(id); all[id] = 1; if (s && s.group_id) T.subs.forEach(function (x) { if (x.group_id === s.group_id) all[x.id] = 1; }); });
+  var n = Object.keys(all).length;
+  if (!await ask({ title: "删掉？", text: "删掉 " + name + " 这堂交的 Code？" + (n > ids.length ? "\n（同组一起交的，同学那一份也会一起删，共 " + n + " 份）" : "") + "\n删了就没了（每天的完整备份里还有）。", yes: "🗑 删掉", danger: true })) return;
+  var r = await sb.from("submissions").delete().in("id", Object.keys(all));
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  T.subs = T.subs.filter(function (s) { return !all[s.id]; }); pageCode();
+}
+async function deleteGroup(key) {
+  var g = groupByKey(key); if (!g) return;
+  if (!await askClear(["要删除这一堂的全部提交：", "· " + g.class_name + " " + g.week + " · " + g.date + "（" + g.items.length + " 份）", "", "只删这一堂，同一个班的其他周不会动。"])) return;
+  var r = await sb.from("submissions").delete().in("id", g.items.map(function (s) { return s.id; }));
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  var gone = {}; g.items.forEach(function (s) { gone[s.id] = 1; });
+  T.subs = T.subs.filter(function (s) { return !gone[s.id]; }); pageCode();
+}
+
+/* =================================================================
+   老师页：📦 作品带回家
+   ================================================================= */
+UI.th = { cls: "", sem: "" };
+var CHOICE = { now: "现在带回家", later: "先不决定", picked: "成品化周挑走" };
+function thClass() {
+  var c = findClass(UI.th.cls);
+  if (!c || c.demo) { c = classesByNow().filter(function (x) { return !x.archived && !x.demo; })[0] || null; UI.th.cls = c ? c.id : ""; }
+  return c;
+}
+function thYear(c) { return String(c.date || todayMYT()).slice(0, 4); }
+function thRecords(c, sid, year, sem) {
+  return (T.takehome || []).filter(function (r) { return r.student_id === sid && r.year === year && r.semester === sem; }).sort(function (a, b) { return weekNum(a.week) - weekNum(b.week); });
+}
+function pageTakehome() {
+  var app = $("app"), c = thClass();
+  var ip = infoPair("学生在「📦 带回家」自己登记（一年制的 Level 只能选「先不决定」）。到成品化周，按 <b>🛠 开放成品化挑选</b>，学生就能从「先不决定」里挑一件。<br>你也可以帮学生登记、改选项、标自费已付。点作品方块可以改。<br>免费名额：同一期最早决定带回家的前 N 件免费，之后的自费（规则来自 course.json）。");
+  var h = '<div class="row" style="margin-top:6px"><h1>📦 作品带回家</h1>' + ip.btn + "</div>" + ip.box;
+  var list = classesByNow().filter(function (x) { return !x.demo && (!x.archived || x.id === (c && c.id)); });
+  h += '<div class="chips">' + list.map(function (x) { return '<button class="chip' + (c && x.id === c.id ? " on" : "") + (x.archived ? " arch" : "") + '" onclick="UI.th.cls=' + jsq(x.id) + ';UI.th.sem=\'\';pageTakehome()">' + esc(x.name) + "<small>" + esc(x.level) + "</small></button>"; }).join("") + "</div>";
+  if (!c) { app.innerHTML = h + '<div class="card"><div class="empty">还没有班。先去「🏫 上课」开班。</div></div>'; return; }
+  var rule = takeRule(c.level), periods = rule.mode === "year" ? ["全年"] : ["上学期", "下学期"];
+  var sem = periods.indexOf(UI.th.sem) >= 0 ? UI.th.sem : periodOf(c.level, c.week || "W1"); UI.th.sem = sem;
+  var year = thYear(c), free = Number(rule.free || 1);
+  h += '<div class="card"><div class="row"><b>' + esc(c.name) + '</b><span class="lvl">' + esc(c.level) + "</span><span class=\"muted\">现在上到 " + esc(c.week) + " " + esc(topicOf(c.level, c.week)) + "</span></div>"
+    + '<div class="muted" style="margin-top:4px">📏 ' + esc(rule.rule || ("一" + (rule.mode === "year" ? "年" : "学期") + " " + free + " 件免费")) + "</div>"
+    + '<div class="row" style="margin-top:10px">' + (periods.length > 1 ? '<div class="seg">' + periods.map(function (p) { return '<button class="' + (p === sem ? "on" : "") + '" onclick="UI.th.sem=\'' + p + '\';pageTakehome()">' + p + "</button>"; }).join("") + "</div>" : '<span class="pill">' + year + " 全年</span>")
+    + '<span class="sp"></span><button class="btn ' + (c.finishing ? "green" : "ghost") + ' sm" onclick="toggleFinishing(' + jsq(c.id) + ')">🛠 ' + (c.finishing ? "成品化挑选开放中（按这里关）" : "开放成品化挑选") + "</button></div>";
+  var students = studentsOf(c), unpaid = [], freeLeft = [], noPick = [];
+  students.forEach(function (s) {
+    var recs = thRecords(c, s.id, year, sem), nf = recs.filter(function (r) { return r.fee === "免费"; }).length;
+    if (nf < free) freeLeft.push(s.name + (free > 1 ? "（剩 " + (free - nf) + "）" : ""));
+    recs.forEach(function (r) { if (r.fee === "自费" && !r.paid) unpaid.push(s.name + " " + r.week); });
+    if (c.finishing && !recs.some(function (r) { return r.choice === "picked"; }) && recs.some(function (r) { return r.choice === "later"; })) noPick.push(s.name);
+  });
+  h += '<div class="muted" style="margin-top:10px">🎁 免费名额还没用完：' + (freeLeft.length ? esc(freeLeft.join("、")) : "（都用了）") + "</div>"
+    + (unpaid.length ? '<div class="pill bad" style="margin-top:6px;white-space:normal">💰 自费还没付：' + esc(unpaid.join("、")) + "</div>" : "")
+    + (c.finishing ? '<div class="pill warn" style="margin-top:6px;white-space:normal">🛠 成品化还没挑：' + (noPick.length ? esc(noPick.join("、")) : "（都挑了）") + "</div>" : "")
+    + (c.finishing && !inClassToday(c) ? '<div class="muted" style="margin-top:6px">⚠ 这个班今天没在上课，学生要等你按「开始上课」才挑得到。</div>' : "") + "</div>";
+  if (!students.length) { app.innerHTML = h + '<div class="card"><div class="empty">这个班还没有学生。</div></div>'; return; }
+  h += '<div class="grid">';
+  students.forEach(function (s, i) {
+    var recs = thRecords(c, s.id, year, sem), frees = recs.filter(function (r) { return r.fee === "免费"; }), hasPaid = recs.some(function (r) { return r.fee === "自费"; });
+    h += '<div class="stu" style="animation-delay:' + Math.min(i * 25, 400) + 'ms"><div class="row"><span class="nm">' + esc(s.name) + '</span><span class="sp"></span><span class="pill ' + (frees.length >= free ? "" : "ok") + '">🎁 ' + frees.length + "/" + free + "</span></div>";
+    if (!recs.length) h += '<div class="muted" style="margin-top:6px">还没有记录</div>';
+    recs.forEach(function (r) {
+      var cls = r.choice === "now" ? "ok" : (r.choice === "picked" ? "acc" : "");
+      h += '<div class="file" style="cursor:pointer;margin-top:6px;padding:8px 10px" onclick="editTake(' + jsq(s.id) + "," + jsq(r.id) + ')"><span class="mono" style="color:var(--accent);font-weight:800">' + esc(r.week) + '</span><div class="sp"><div style="font-weight:700">' + esc(r.project || topicOf(c.level, r.week)) + '</div><span class="pill ' + cls + '">' + CHOICE[r.choice] + "</span>"
+        + (r.fee === "免费" ? ' <span class="pill ok">免费</span>' : "") + (r.fee === "自费" ? ' <span class="pill ' + (r.paid ? "ok" : "bad") + '">自费 · ' + (r.paid ? "已付" : "未付") + (r.amount != null ? " · RM " + Number(r.amount).toFixed(2) : "") + "</span>" : "") + "</div></div>";
+    });
+    h += '<div class="row" style="gap:6px;margin-top:8px"><button class="btn ghost sm" onclick="editTake(' + jsq(s.id) + ",'')\">＋ 登记</button>" + (hasPaid ? '<a class="btn ghost sm" href="#/t/invoice/' + esc(s.id) + '" target="_blank" rel="noopener">🧾 单据</a>' : "") + "</div></div>";
+  });
+  app.innerHTML = h + "</div>";
+}
+async function toggleFinishing(cid) {
+  var c = findClass(cid), on = !c.finishing;
+  var r = await sb.from("classes").update({ finishing: on }).eq("id", cid);
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  c.finishing = on;
+  if (on && !inClassToday(c)) toast("记得先在「上课」按开始上课，学生才挑得到");
+  pageTakehome();
+}
+function editTake(sid, rid) {
+  var c = thClass(), s = findStudent(sid), rec = rid ? (T.takehome || []).filter(function (r) { return r.id === rid; })[0] : null;
+  var sem = UI.th.sem, lo = sem === "下学期" ? 19 : 1, hi = sem === "上学期" ? 18 : 36, wk = rec ? rec.week : c.week, opts = "";
+  for (var i = lo; i <= hi; i++) { var w = "W" + i; opts += '<option value="' + w + '"' + (w === wk ? " selected" : "") + ">" + w + " · " + esc(topicOf(c.level, w)) + "</option>"; }
+  openSheet("<h2>📦 " + (rec ? "改" : "登记") + "：" + esc(s.name) + "</h2>"
+    + "<label>哪一周的作品</label><select id=\"tkWeek\"" + (rec ? " disabled" : "") + ">" + opts + "</select>"
+    + "<label>作品名称</label><input id=\"tkProj\" value=\"" + esc(rec ? rec.project : "") + "\" placeholder=\"留空就用那一周的主题\">"
+    + "<label>选项</label><select id=\"tkChoice\">" + ["now", "later", "picked"].map(function (k) { return '<option value="' + k + '"' + (rec && rec.choice === k ? " selected" : "") + ">" + CHOICE[k] + "</option>"; }).join("") + "</select>"
+    + (rec && rec.fee === "自费" ? '<div class="grid2"><div><label>自费</label><div class="seg"><button id="tkUnpaid" class="' + (rec.paid ? "" : "on") + '" onclick="this.classList.add(\'on\');$(\'tkPaid\').classList.remove(\'on\')">未付</button><button id="tkPaid" class="' + (rec.paid ? "on" : "") + '" onclick="this.classList.add(\'on\');$(\'tkUnpaid\').classList.remove(\'on\')">已付</button></div></div>'
+      + '<div><label>金额（RM）</label><input id="tkAmt" type="number" min="0" step="0.5" value="' + (rec.amount != null ? rec.amount : "") + '" placeholder="多少"></div></div>' : "")
+    + '<div class="acts"><button class="btn" onclick="saveTake(' + jsq(sid) + "," + jsq(rid) + ')">💾 保存</button>' + (rec ? '<button class="btn red" onclick="deleteTake(' + jsq(rid) + ')">🗑 删这条</button>' : "") + "</div>");
+}
+async function saveTake(sid, rid) {
+  var c = thClass(), rec = rid ? T.takehome.filter(function (r) { return r.id === rid; })[0] : null;
+  var week = rec ? rec.week : $("tkWeek").value, choice = $("tkChoice").value, proj = $("tkProj").value.trim() || topicOf(c.level, week);
+  if (!rec || rec.choice !== choice || (rec.project || "") !== proj) {
+    if (rec && (rec.project || "") !== proj) { var u = await sb.from("takehome").update({ project: proj }).eq("id", rid); if (u.error) { alertBox(friendlyDbError(u.error)); return; } }
+    if (!rec || rec.choice !== choice) { var r = await sb.rpc("takehome_set", { p_class: c.id, p_student: sid, p_week: week, p_choice: choice, p_project: proj }); if (r.error) { alertBox(friendlyDbError(r.error)); return; } }
+  }
+  if (rec && $("tkPaid")) {
+    var paid = $("tkPaid").classList.contains("on"), amtTxt = $("tkAmt").value.trim(), amt = amtTxt === "" ? null : Number(amtTxt);
+    if (amt !== null && (isNaN(amt) || amt < 0)) { alertBox("金额要写数字，例如 15"); return; }
+    var patch = { paid: paid, amount: amt };
+    if (paid !== !!rec.paid) patch.paid_at = paid ? new Date().toISOString() : null;
+    var p = await sb.from("takehome").update(patch).eq("id", rid);
+    if (p.error) { alertBox(friendlyDbError(p.error)); return; }
+  }
+  T.takehome = await fetchAll("takehome", ["created_at"]);
+  closeSheets(); pageTakehome();
+}
+async function deleteTake(rid) {
+  if (!await ask({ title: "删掉？", text: "删掉这条带回家记录？免费名额会重算。", yes: "🗑 删掉", danger: true })) return;
+  var r = await sb.rpc("takehome_delete", { p_id: rid });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  T.takehome = await fetchAll("takehome", ["created_at"]); closeSheets(); pageTakehome();
+}
+
+/* ---------- 🧾 单据（可以存 PDF / 印出来 / WhatsApp 家长） ---------- */
+UI.invOnlyUnpaid = false;
+function rm(n) { return "RM " + (Number(n) || 0).toFixed(2); }
+function invoiceData(sid) {
+  var s = findStudent(sid); if (!s) return null;
+  var recs = (T.takehome || []).filter(function (r) { return r.student_id === sid && r.fee === "自费"; }).sort(function (a, b) { return String(a.year).localeCompare(String(b.year)) || weekNum(a.week) - weekNum(b.week); });
+  var c = findClass(s.class_id);
+  return { s: s, cls: c, all: recs, list: recs.filter(function (r) { return !UI.invOnlyUnpaid || !r.paid; }), no: todayMYT().slice(0, 4) + todayMYT().slice(5, 7) + "-" + s.name.replace(/\s+/g, "") };
+}
+function pageInvoice(sid) {
+  var d = invoiceData(sid);
+  if (!d) { $("app").innerHTML = '<div class="card"><div class="empty">找不到这个学生</div></div>'; return; }
+  document.title = "单据 · " + d.s.name;
+  var total = 0, paid = 0, blank = 0;
+  d.list.forEach(function (r) { var a = Number(r.amount) || 0; if (r.amount == null) blank++; total += a; if (r.paid) paid += a; });
+  var h = '<div class="row noprint" style="margin-top:8px"><button class="btn" onclick="window.print()">🖨 存成 PDF / 印出来</button><button class="btn wa" onclick="invoiceWA(' + jsq(sid) + ')">💬 WhatsApp 家长</button>'
+    + '<label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox"' + (UI.invOnlyUnpaid ? " checked" : "") + ' onchange="UI.invOnlyUnpaid=this.checked;pageInvoice(' + jsq(sid) + ')"> 只列还没付的</label>'
+    + '<span class="sp"></span><a class="btn ghost sm" href="#/t/takehome">← 回带回家</a></div>'
+    + '<div class="paper"><div class="phead"><div class="row" style="gap:10px">' + chipSVG().replace("<svg ", '<svg style="width:44px;height:44px" ') + '<div><b style="font-size:21px">自动工程实作课</b><div class="pmuted">Arduino / IoT</div></div></div>'
+    + '<div style="text-align:right"><div class="ptitle">单据 INVOICE</div><div class="pmuted">编号 ' + esc(d.no) + '</div><div class="pmuted">日期 ' + esc(todayMYT()) + "</div></div></div>"
+    + '<div class="pinfo"><div><b>学生</b>' + esc(d.s.name) + "</div><div><b>班级</b>" + esc(d.cls ? d.cls.name : "-") + "（" + esc(d.s.level) + "）</div><div><b>家长</b>" + esc(d.s.parent || "-") + "</div><div><b>电话</b>" + esc(d.s.phone || "-") + "</div></div>";
+  if (!d.list.length) h += '<div class="pempty">' + (d.all.length ? "✅ 全部都付清了。" : "这位学生还没有自费带回家的作品。") + "</div>";
+  else {
+    h += '<table class="ptable"><tr><th>#</th><th>作品（带回家）</th><th>周次</th><th>状态</th><th class="r">金额</th></tr>';
+    d.list.forEach(function (r, i) {
+      h += "<tr><td>" + (i + 1) + "</td><td>" + esc(r.project) + "</td><td>" + esc(r.week) + " · " + esc(r.year) + (r.semester !== "全年" ? " " + esc(r.semester) : "") + '</td><td><span class="pst ' + (r.paid ? "y" : "n") + '">' + (r.paid ? "已付" + (r.paid_at ? " " + esc(fmtTime(r.paid_at).slice(0, 10)) : "") : "未付") + '</span></td><td class="r">' + (r.amount == null ? '<span style="color:#b91c1c">（未填）</span>' : rm(r.amount)) + "</td></tr>";
+    });
+    h += '</table><div class="ptot"><div><span>合计</span><b>' + rm(total) + "</b></div><div><span>已付</span><span>" + rm(paid) + '</span></div><div class="big"><span>还要付</span><span>' + rm(total - paid) + "</span></div></div>";
+    if (blank) h += '<div class="noprint" style="color:#b91c1c;font-size:13px;margin-top:8px">⚠ 有 ' + blank + " 件还没填金额 → 回「📦 带回家」点那一件填 RM。</div>";
+  }
+  h += '<div class="pnote">每个学期／每年有免费带回家的名额，超过的作品要自费（材料费）。有问题请联络老师。谢谢！</div></div>';
+  $("app").innerHTML = h;
+}
+function invoiceWA(sid) {
+  var d = invoiceData(sid), num = waNumber(d.s.phone);
+  if (!num) { alertBox("这个学生没有家长电话，先去「追踪表 › 学生名单」填。"); return; }
+  var total = 0, paid = 0, lines = ["您好，这是自动工程实作课的单据（编号 " + d.no + "）。", d.s.name + " 作品带回家（自费）："];
+  d.list.forEach(function (r, i) { var a = Number(r.amount) || 0; total += a; if (r.paid) paid += a; lines.push((i + 1) + ". " + r.week + " " + r.project + " — " + (r.amount == null ? "金额待定" : rm(a)) + "（" + (r.paid ? "已付" : "未付") + "）"); });
+  lines.push("合计 " + rm(total) + "，已付 " + rm(paid) + "，还要付 " + rm(total - paid) + "。", "PDF 单据我另外传给您。谢谢！");
+  window.open("https://wa.me/" + num + "?text=" + encodeURIComponent(lines.join("\n")), "_blank", "noopener");
+}
+
+/* =================================================================
+   学生页：📤 交 Code、📦 带回家
+   ================================================================= */
+var STU = { mates: null, partners: [], help: null, helpTimer: null, week: [], meTimer: null };
+try { STU.partners = JSON.parse(sessionStorage.getItem("iot_partners") || "[]") || []; } catch (e) { STU.partners = []; }
+function draftKey() { return "iot_draft_" + (ME && ME.id); }
+function saveDraft() {
+  try {
+    var d = { code: ($("sCode") || {}).value || "", log: ($("sLog") || {}).value || "", problem: ($("sProb") || {}).value || "",
+      board: ($("sBoard") || {}).value || "", task: (document.querySelector('input[name="task"]:checked') || {}).value || "" };
+    localStorage.setItem(draftKey(), JSON.stringify(d));
+  } catch (e) {}
+}
+function loadDraft() { try { return JSON.parse(localStorage.getItem(draftKey()) || "{}") || {}; } catch (e) { return {}; } }
+async function refreshMe() {
+  var w = await sb.rpc("whoami");
+  if (!w.error && w.data && w.data.role === "student") ME = w.data;
+}
+async function loadStudentP2() {
+  var r = await Promise.all([sb.rpc("my_week_submissions"), sb.rpc("my_classmates"), sb.rpc("my_help")]);
+  STU.week = r[0].data || [];
+  STU.mates = (r[1].data || []).map(function (x) { return typeof x === "string" ? x : x.my_classmates; });
+  STU.help = r[2].data || { status: "none" };
+}
+var TX2 = {
+  zh: { nav_submit: "交 Code", nav_take: "带回家", submit_h: "把 Code 交给老师", st_in: "✅ 在上课 · 交了算出席", st_home: "🏠 现在不是上课时间：交了算「在家交」，不算出席，老师一样会检查。",
+    st_noclass: "你还没有分到班，请老师在追踪表帮你选班。", st_arch: "这个班已经结束（归档），现在交不了。", today: "这周交了", none_yet: "还没交",
+    pt_title: "👥 跟同学共用一台电脑？", pt_hint: "一起做的同学在这里点一下，交一次就全部人都算（最多再选 3 位）。自己用一台电脑的，不用理。", pt_none: "班上没有其他同学。", pt_max: "最多再选 3 位同学。",
+    task: "这次交的是哪个任务？", task_hint: "基础做完交一次，挑战做完再交一次，分开交。交了以后老师检查过，才算完成。", t_base: "基础", t_c1: "挑战 1", t_c2: "挑战 2",
+    board: "板子", problem: "遇到什么问题？（一句话，可以不填）", problem_ph: "例如：LED 不亮", code: "你的代码", code_ph: "把你的 code 全部贴在这里…", log: "串口 Log（可选）", log_ph: "有报错的话，把报错贴在这里…",
+    send: "📤 提交给老师", need_code: "代码是空的，贴了 code 才能提交。", sent: "✅ 交好了！", updated: "✅ 已更新！老师那边是最新这一份。", sent_home: "🏠 在家交（不算出席，老师会检查）", with: "同组：",
+    help_t: "🙋 卡住了？", help_hint: "先自己试 10 分钟。还是不行，在上面「遇到什么问题」写一句，再按这里，老师会按顺序过来。", help_btn: "🙋 我卡住了，请老师来",
+    help_wait: "✋ 已经举手了，你排第 {N} 位，老师会按顺序过来。", help_cancel: "我自己解决了", help_done: "✅ 老师处理好了。", help_only_class: "举手要在上课的时候。",
+    checked: "检查过", waiting: "等检查", at_home: "在家",
+    take_h: "📦 作品带回家", take_sub: "每做完一个作品，先决定要不要带回家。", free_left: "🎁 {P}还有 {N} 件免费名额。选你最想带回家的。", used_on: "已经用在：",
+    free_used: "{P}的免费名额都用完了：", free_used2: "再带回家的作品要自费（先问过爸妈和老师）。", P_year: "今年", P_sem: "这学期",
+    when_year: "3、7、11 月的成品化周", when_sem: "学期末「成品化周」", no_now: "这个 Level 作品做完不当场带回家：先拍照、存程序、拆掉，{W}再挑。",
+    this_week: "这周的作品", not_open: "老师还没开始上课，上课时才能选。", now_t: "🏠 现在带回家", now_d: "今天就装壳带回去。会用掉{P}的一个免费名额。", now_paid: "{P}的免费名额用完了，这件要自费。",
+    later_t: "📷 先不决定", later_d: "拍照、存程序，然后拆掉。{W}可以挑一件带回家。", chosen: "你选了：", change_later: "先不决定（还可以改成现在带回家）", change_later_y: "先不决定（{W}再挑）",
+    decided: "已经决定带回家。要改的话问老师。", finishing: "🛠 成品化周：从{P}「先不决定」的作品里挑一件带回家", pick: "挑这件", no_later: "{P}没有「先不决定」的作品。",
+    list: "{P}的作品", none: "{P}还没有记录。", free: "免费", paid: "自费", unpaid: "未付", paid_ok: "已付", c_now: "现在带回家", c_later: "先不决定", c_picked: "成品化周挑走",
+    confirm_paid: "{P}的免费名额已经用完了，这件要自费。确定吗？（先问过爸妈和老师）" },
+  en: { nav_submit: "Submit", nav_take: "Take Home", submit_h: "Send your code to teacher", st_in: "✅ In class · counts as attendance", st_home: "🏠 Not class time now: this counts as \"submitted at home\" (no attendance). Teacher will still check it.",
+    st_noclass: "You are not in a class yet. Please ask your teacher.", st_arch: "This class has ended (archived). You can't submit now.", today: "This week", none_yet: "Nothing yet",
+    pt_title: "👥 Sharing a computer?", pt_hint: "Tap the classmates working with you. One submission counts for everyone (up to 3 more). Skip this if you have your own computer.", pt_none: "No other classmates in this class.", pt_max: "You can pick up to 3 classmates.",
+    task: "Which task is this?", task_hint: "Submit Basic first, then each challenge separately. It counts as done after teacher checks it.", t_base: "Basic", t_c1: "Challenge 1", t_c2: "Challenge 2",
+    board: "Board", problem: "What's the problem? (one sentence, optional)", problem_ph: "e.g. LED not lighting", code: "Your code", code_ph: "Paste all your code here…", log: "Serial log (optional)", log_ph: "Paste any error messages here…",
+    send: "📤 Submit to teacher", need_code: "Your code is empty.", sent: "✅ Submitted!", updated: "✅ Updated! Teacher now has your latest version.", sent_home: "🏠 Submitted at home (no attendance; teacher will check)", with: "Together with: ",
+    help_t: "🙋 Stuck?", help_hint: "Try on your own for 10 minutes first. Still stuck? Write one line in \"What's the problem\" above, then press here. Teacher comes in order.", help_btn: "🙋 I'm stuck, please help",
+    help_wait: "✋ Hand raised. You are number {N} in the queue.", help_cancel: "I solved it myself", help_done: "✅ Teacher has helped you.", help_only_class: "You can raise your hand only during class.",
+    checked: "checked", waiting: "waiting", at_home: "home",
+    take_h: "📦 Take your project home", take_sub: "After each project, decide whether to take it home.", free_left: "🎁 {N} free take-home(s) left {P}. Choose the ones you want most.", used_on: "Used on: ",
+    free_used: "All free take-homes {P} are used: ", free_used2: "More projects cost extra (ask your parents and teacher first).", P_year: "this year", P_sem: "this semester",
+    when_year: "the March / July / November finishing week", when_sem: "the end-of-semester finishing week", no_now: "At this level projects don't go home right away: take photos, save the code, then pick at {W}.",
+    this_week: "This week's project", not_open: "Class hasn't started. You can choose during class.", now_t: "🏠 Take home now", now_d: "Put it in a box and take it home today. Uses one free take-home {P}.", now_paid: "No free take-homes left {P} — this one costs extra.",
+    later_t: "📷 Decide later", later_d: "Take photos, save the code, then take it apart. You can pick one at {W}.", chosen: "You chose: ", change_later: "Decide later (you can still change to take home now)", change_later_y: "Decide later (pick at {W})",
+    decided: "Already taken home. Ask teacher to change.", finishing: "🛠 Finishing week: pick one \"decide later\" project to take home", pick: "Pick this", no_later: "No \"decide later\" projects {P}.",
+    list: "Projects {P}", none: "No records yet.", free: "Free", paid: "Extra cost", unpaid: "unpaid", paid_ok: "paid", c_now: "Take home now", c_later: "Decide later", c_picked: "Picked at finishing week",
+    confirm_paid: "Your free take-homes {P} are used, so this one costs extra. Continue? (ask your parents and teacher first)" }
+};
+function t2(k) { return (TX2[LANG] && TX2[LANG][k] != null) ? TX2[LANG][k] : (TX2.zh[k] || k); }
+function taskLabelS(t) { return t === "挑战1" ? t2("t_c1") : (t === "挑战2" ? t2("t_c2") : t2("t_base")); }
+
+async function stuSubmit() {
+  var app = $("app");
+  if (!STU.mates) await loadStudentP2();
+  var d = loadDraft(), chs = ME.class_id ? challengesOf(ME.level, ME.class_week) : [];
+  var tasks = [["基础", ""]]; if (chs[0]) tasks.push(["挑战1", chs[0]]); if (chs[1]) tasks.push(["挑战2", chs[1]]);
+  var curTask = tasks.some(function (x) { return x[0] === d.task; }) ? d.task : "基础";
+  var h = whoHTML() + "<h1>📤 " + esc(t2("submit_h")) + "</h1>";
+  if (!ME.class_id) { app.innerHTML = h + '<div class="card"><div class="err">' + esc(t2("st_noclass")) + "</div></div>"; return; }
+  if (ME.archived) { app.innerHTML = h + '<div class="card"><div class="err">' + esc(t2("st_arch")) + "</div></div>"; return; }
+  h += '<div class="card ' + (ME.in_class ? "glow" : "") + '"><div class="' + (ME.in_class ? "okbox" : "infotext show") + '" style="margin:0">' + esc(ME.in_class ? t2("st_in") : t2("st_home")) + "</div>"
+    + '<div class="row" style="margin-top:10px"><span class="mono" style="color:var(--accent);font-weight:800">' + esc(ME.class_week) + "</span> " + esc(topicOf(ME.level, ME.class_week)) + "</div>"
+    + '<div class="row" style="margin-top:8px;gap:6px"><span class="muted">' + esc(t2("today")) + "：</span>" + (STU.week.length ? STU.week.map(function (s) { return '<span class="pill ' + (s.checked ? "ok" : "warn") + '">' + (s.checked ? "✓ " : "○ ") + esc(taskLabelS(s.task)) + (s.home ? " 🏠" : "") + "</span>"; }).join("") : '<span class="muted">' + esc(t2("none_yet")) + "</span>") + "</div></div>";
+  // 同组
+  h += '<details class="box"' + (STU.partners.length ? " open" : "") + "><summary>" + esc(t2("pt_title")) + (STU.partners.length ? ' <span class="pill acc">' + STU.partners.length + "</span>" : "") + '</summary><div class="in"><div class="muted">' + esc(t2("pt_hint")) + '</div><div class="chips" style="margin-top:8px">'
+    + (STU.mates.length ? STU.mates.map(function (n) { var on = STU.partners.indexOf(n) >= 0; return '<button class="chip' + (on ? " on" : "") + '" onclick="togglePartner(' + jsq(n) + ')">' + (on ? "✅ " : "") + esc(n) + "</button>"; }).join("") : '<span class="muted">' + esc(t2("pt_none")) + "</span>")
+    + "</div></div></details>";
+  h += '<div class="card"><label style="margin-top:0">' + esc(t2("task")) + "</label>"
+    + tasks.map(function (x) { return '<label class="file" style="cursor:pointer;margin:6px 0 0;font-weight:400"><input type="radio" name="task" value="' + x[0] + '"' + (x[0] === curTask ? " checked" : "") + ' onchange="saveDraft()"><div class="sp"><b>' + esc(taskLabelS(x[0])) + "</b>" + (x[1] ? '<div class="muted">' + esc(x[1]) + "</div>" : "") + "</div></label>"; }).join("")
+    + '<div class="muted" style="margin-top:6px">' + esc(t2("task_hint")) + "</div>"
+    + '<div class="grid2"><div><label>' + esc(t2("board")) + '</label><select id="sBoard" onchange="saveDraft()"><option' + (d.board === "ESP32" ? "" : " selected") + ">Arduino Uno</option><option" + (d.board === "ESP32" ? " selected" : "") + ">ESP32</option></select></div>"
+    + "<div><label>" + esc(t2("problem")) + '</label><input id="sProb" value="' + esc(d.problem || "") + '" placeholder="' + esc(t2("problem_ph")) + '" oninput="saveDraft()"></div></div>'
+    + "<label>" + esc(t2("code")) + ' *</label><textarea class="code" id="sCode" spellcheck="false" placeholder="' + esc(t2("code_ph")) + '" oninput="saveDraft()">' + esc(d.code || "") + "</textarea>"
+    + '<details class="box"><summary>' + esc(t2("log")) + '</summary><div class="in"><textarea class="code" id="sLog" style="min-height:90px" spellcheck="false" placeholder="' + esc(t2("log_ph")) + '" oninput="saveDraft()">' + esc(d.log || "") + "</textarea></div></details>"
+    + '<button class="btn wide" style="margin-top:12px" id="sSend" onclick="submitCode()">' + esc(t2("send")) + '</button><div id="sMsg"></div></div>';
+  // 举手
+  h += '<div class="card" style="border-style:dashed;border-color:var(--warn)"><h2>' + esc(t2("help_t")) + '</h2><div class="muted">' + esc(t2("help_hint")) + '</div><div id="helpBox"></div></div>';
+  app.innerHTML = h;
+  paintHelp();
+  clearInterval(STU.meTimer);
+  STU.meTimer = setInterval(async function () {
+    if (location.hash !== "#/s/submit" || !ME || ME.role !== "student" || document.visibilityState !== "visible") return;
+    var was = ME.in_class + "|" + ME.class_week;
+    await refreshMe();
+    if (was !== ME.in_class + "|" + ME.class_week) { saveDraft(); await loadStudentP2(); stuSubmit(); }
+  }, 30000);
+}
+function togglePartner(n) {
+  var i = STU.partners.indexOf(n);
+  if (i >= 0) STU.partners.splice(i, 1);
+  else { if (STU.partners.length >= 3) { alertBox(t2("pt_max")); return; } STU.partners.push(n); }
+  try { sessionStorage.setItem("iot_partners", JSON.stringify(STU.partners)); } catch (e) {}
+  saveDraft(); stuSubmit();
+}
+async function submitCode() {
+  var code = $("sCode").value, msg = $("sMsg");
+  if (!code.trim()) { msg.innerHTML = '<div class="err">' + esc(t2("need_code")) + "</div>"; return; }
+  var task = (document.querySelector('input[name="task"]:checked') || {}).value || "基础";
+  var btn = $("sSend"); btn.disabled = true; msg.innerHTML = "";
+  var r = await sb.rpc("submit_code", { p_task: task, p_board: $("sBoard").value, p_problem: $("sProb").value, p_code: code, p_log: ($("sLog") || {}).value || "", p_partners: STU.partners });
+  btn.disabled = false;
+  if (r.error) { msg.innerHTML = '<div class="err">' + esc(friendlyDbError(r.error)) + "</div>"; return; }
+  var j = r.data;
+  var text = (j.updated ? t2("updated") : t2("sent")) + "  " + j.class_name + " · " + j.week + " · " + taskLabelS(j.task);
+  if (j.home) text += "\n" + t2("sent_home");
+  if (j.partners && j.partners.length) text += "\n👥 " + t2("with") + j.partners.join("、");
+  await loadStudentP2();
+  stuSubmit();
+  $("sMsg").innerHTML = '<div class="okbox" style="white-space:pre-line">' + esc(text) + "</div>";
+  $("sMsg").scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "center" });
+}
+function paintHelp() {
+  var box = $("helpBox"); if (!box) return;
+  var hs = STU.help || { status: "none" };
+  clearTimeout(STU.helpTimer);
+  if (hs.status === "waiting") {
+    box.innerHTML = '<div class="okbox" style="background:var(--warn-soft);color:var(--warn)">' + esc(t2("help_wait").replace("{N}", hs.position)) + '</div><button class="btn ghost sm" style="margin-top:8px" onclick="cancelHelp(' + jsq(hs.id) + ')">' + esc(t2("help_cancel")) + "</button>";
+    STU.helpTimer = setTimeout(async function () { var r = await sb.rpc("my_help"); if (!r.error) { STU.help = r.data; paintHelp(); } }, 4000);
+    return;
+  }
+  box.innerHTML = (hs.status === "done" ? '<div class="okbox">' + esc(t2("help_done")) + "</div>" : "")
+    + '<button class="btn wide" style="margin-top:10px;background:var(--warn);color:#1f1300"' + (ME.in_class ? "" : " disabled") + ' onclick="askHelp()">' + esc(t2("help_btn")) + "</button>"
+    + (ME.in_class ? "" : '<div class="muted" style="margin-top:6px">' + esc(t2("help_only_class")) + "</div>");
+}
+async function askHelp() {
+  var task = (document.querySelector('input[name="task"]:checked') || {}).value || "";
+  var r = await sb.rpc("ask_help", { p_task: task, p_problem: ($("sProb") || {}).value || "" });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  STU.help = { status: "waiting", id: r.data.id, position: r.data.position }; paintHelp();
+}
+async function cancelHelp(id) { await sb.rpc("cancel_help", { p_id: id }); STU.help = { status: "none" }; paintHelp(); }
+
+/* ---------- 学生：带回家 ---------- */
+STU.th = null;
+function thFill(x) {
+  var j = STU.th || {}, yr = j.rule && j.rule.mode === "year";
+  return String(x).split("{P}").join(t2(yr ? "P_year" : "P_sem")).split("{W}").join(t2(yr ? "when_year" : "when_sem")).split("{N}").join(j.free_left);
+}
+function choiceText(c) { return c === "now" ? t2("c_now") : (c === "picked" ? t2("c_picked") : t2("c_later")); }
+async function stuTake() {
+  var r = await sb.rpc("my_takehome");
+  STU.th = r.data || { ok: false, error: r.error ? friendlyDbError(r.error) : "" };
+  var j = STU.th, h = whoHTML() + "<h1>" + esc(t2("take_h")) + '</h1><div class="muted">' + esc(t2("take_sub")) + "</div>";
+  if (!j.ok) { $("app").innerHTML = h + '<div class="card"><div class="err">' + esc(j.error || "") + "</div></div>"; return; }
+  var rt = (LANG === "en" ? j.rule.rule_en : j.rule.rule) || "";
+  if (rt) h += '<div class="muted" style="margin-top:6px">📏 ' + esc(rt) + "</div>";
+  var used = (j.records || []).filter(function (x) { return x.fee === "免费"; }).map(function (x) { return "<b>" + esc(x.week) + " " + esc(x.project) + "</b>"; }).join("、");
+  h += j.free_left <= 0 ? '<div class="card"><div class="err" style="margin:0">' + t2("free_used") + used + "<br>" + t2("free_used2") + "</div></div>"
+    : '<div class="card glow"><div class="okbox" style="margin:0">' + t2("free_left") + (used ? "<br>" + t2("used_on") + used : "") + "</div></div>";
+  if (j.finishing) {
+    var later = (j.records || []).filter(function (x) { return x.choice === "later"; });
+    h += '<div class="card"><h2>' + t2("finishing") + "</h2>" + (later.length ? later.map(function (x) { return '<div class="file"><span class="mono" style="color:var(--accent);font-weight:800">' + esc(x.week) + '</span><div class="sp">' + esc(x.project) + '</div><button class="btn sm" onclick="pickTake(' + jsq(x.id) + ')">' + t2("pick") + "</button></div>"; }).join("") : '<div class="empty">' + t2("no_later") + "</div>") + "</div>";
+  }
+  h += '<div class="card"><h2>' + t2("this_week") + '：<span class="mono" style="color:var(--accent)">' + esc(j.week) + "</span> " + esc(topicOf(j.level, j.week)) + "</h2>";
+  if (!j.open) h += '<div class="empty">' + t2("not_open") + "</div>";
+  else if (j.current && (j.current.choice === "now" || j.current.choice === "picked")) h += '<div class="okbox">' + t2("chosen") + choiceText(j.current.choice) + "<br>" + t2("decided") + "</div>";
+  else {
+    if (j.current && j.current.choice === "later") h += '<div class="infotext show">' + t2("chosen") + t2(j.allow_now ? "change_later" : "change_later_y") + "</div>";
+    if (j.allow_now) h += '<button class="file" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" onclick="chooseTake(\'now\')"><span class="fi">🏠</span><div class="sp"><b>' + t2("now_t") + '</b><div class="muted">' + (j.free_left <= 0 ? '<span style="color:var(--bad)">' + t2("now_paid") + "</span>" : t2("now_d")) + "</div></div></button>";
+    else if (!j.current) h += '<div class="muted" style="margin:8px 0">' + t2("no_now") + "</div>";
+    if (!j.current) h += '<button class="file" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" onclick="chooseTake(\'later\')"><span class="fi">📷</span><div class="sp"><b>' + t2("later_t") + '</b><div class="muted">' + t2("later_d") + "</div></div></button>";
+  }
+  h += "</div>";
+  h += '<div class="sec">' + t2("list") + "</div>";
+  if (!(j.records || []).length) h += '<div class="card"><div class="empty">' + t2("none") + "</div></div>";
+  (j.records || []).forEach(function (x) {
+    var cls = x.choice === "now" ? "ok" : (x.choice === "picked" ? "acc" : "");
+    h += '<div class="file"><span class="mono" style="color:var(--accent);font-weight:800">' + esc(x.week) + '</span><div class="sp">' + esc(x.project) + '</div><span class="pill ' + cls + '">' + choiceText(x.choice) + "</span>"
+      + (x.fee === "免费" ? '<span class="pill ok">' + t2("free") + "</span>" : (x.fee === "自费" ? '<span class="pill bad">' + t2("paid") + " · " + (x.paid ? t2("paid_ok") : t2("unpaid")) + "</span>" : "")) + "</div>";
+  });
+  $("app").innerHTML = thFill(h);
+}
+async function chooseTake(choice) {
+  if (choice === "now" && STU.th.free_left <= 0 && !await ask({ title: "?", text: thFill(t2("confirm_paid")), yes: tx("yes"), no: tx("cancel") })) return;
+  var r = await sb.rpc("takehome_choose", { p_choice: choice, p_project: topicOf(ME.level, ME.class_week) });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  stuTake();
+}
+async function pickTake(id) {
+  if (STU.th.free_left <= 0 && !await ask({ title: "?", text: thFill(t2("confirm_paid")), yes: tx("yes"), no: tx("cancel") })) return;
+  var r = await sb.rpc("takehome_pick", { p_id: id });
+  if (r.error) { alertBox(friendlyDbError(r.error)); return; }
+  stuTake();
+}
+
+var TEACHER_PAGES = { classes: pageClasses, code: pageCode, tracker: pageTracker, takehome: pageTakehome, files: pageFiles, settings: pageSettings };
 
 /* =================================================================
    学生页
@@ -1400,6 +2186,8 @@ async function loadStudent() {
   S = { progress: {}, files: [] };
   if (!r[0].error) (r[0].data || []).forEach(function (p) { S.progress[p.week] = p; });
   if (!r[1].error) S.files = r[1].data || [];
+  STU.mates = null;
+  await loadStudentP2();
 }
 function whoHTML() {
   return '<div class="who"><span style="font-size:24px">🧑‍🔧</span><div><div class="muted">' + esc(tx("you_are")) + "</div><b>" + esc(ME.name) + '</b> <span class="lvl">' + esc(ME.level) + '</span><div class="muted">' + esc(ME.class_name || tx("no_class")) + '</div></div><span class="sp"></span><button class="btn ghost sm" onclick="studentLogoutAsk()">' + esc(tx("not_me")) + "</button></div>";
@@ -1436,7 +2224,7 @@ function stuFiles() {
   });
   $("app").innerHTML = h;
 }
-var STUDENT_PAGES = { progress: stuProgress, files: stuFiles };
+var STUDENT_PAGES = { submit: stuSubmit, progress: stuProgress, files: stuFiles, take: stuTake };
 
 /* =================================================================
    启动
@@ -1446,7 +2234,7 @@ document.documentElement.lang = LANG === "en" ? "en" : "zh";
 sb.auth.onAuthStateChange(function (ev) { if (ev === "SIGNED_OUT" && ME) { ME = null; route(); } });
 document.addEventListener("visibilitychange", function () {
   if (document.visibilityState !== "visible" || !ME) return;
-  if (ME.role === "student") { if (idleTooLong()) { logout(tx("idle_out")); return; } loadStudent().then(route); }
+  if (ME.role === "student") { if (idleTooLong()) { logout(tx("idle_out")); return; } if ($("sCode")) saveDraft(); refreshMe().then(loadStudent).then(route); }
   if (ME.role === "teacher" && T && Date.now() - (T.loadedAt || 0) > 5 * 60 * 1000 && !document.querySelector("#modals .back")) { sb.rpc("teacher_ping"); refreshTeacher(true); }
 });
 (async function () { paintTop(); await loadCourse(); await boot(); })();
