@@ -1336,6 +1336,7 @@ function connectDrive() {
     client_id: CFG.GOOGLE_CLIENT_ID,
     scope: "https://www.googleapis.com/auth/drive.file",
     ux_mode: "popup",
+    select_account: true,   // 每次都让你选 Google 账号（要选 IoT 课程那个）
     callback: async function (resp) {
       if (!resp || !resp.code) { alertBox("没有连接成功：" + ((resp && resp.error) || "取消了")); return; }
       toast("连接中…");
