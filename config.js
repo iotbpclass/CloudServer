@@ -6,7 +6,7 @@ window.IOT_CONFIG = {
   SUPABASE_KEY: "sb_publishable_S5gWWI3h-5G7eKaFEt82rA_iFQcicu4",
 
   // Google Cloud → OAuth 用户端 ID（设定步骤第 5 步拿到后贴在这里）
-  GOOGLE_CLIENT_ID: "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",
+  GOOGLE_CLIENT_ID: "1038326109303-fsgcumt5lqnkb7lcpoqp1oo1kdhaorka.apps.googleusercontent.com",
 
   // 推播用的公开钥匙（跟 Edge Function 的 VAPID_PUBLIC_KEY 一样）
   VAPID_PUBLIC_KEY: "BNumU90Qlgs_gBYwj7SaNLWfmS4U5qi0mVyiAbISpr9ckseNYN3gJivzo8G_VIMi-IedUedw9163CG-zJGJxuC4",
